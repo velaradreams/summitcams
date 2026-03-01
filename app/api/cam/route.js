@@ -103,4 +103,4 @@ export async function GET(request) {
   }
 }
 
-export const runtime = "edge";
+export const runtime = "nodejs";
