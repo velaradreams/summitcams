@@ -40,14 +40,6 @@ const CAMS = [
       "/api/cam?src=https://live6.brownrice.com/cam-images/vailbluesky.jpg",
   },
   {
-    id: "beaver",
-    resort: "Beaver Creek",
-    cam: "Snow Stake",
-    elevation: "11,440'",
-    type: "iframe",
-    src: "https://player.brownrice.com/embed/bcsnowstake2",
-  },
-  {
     id: "breck",
     resort: "Breckenridge",
     cam: "Snow Stake, Static Image updated every 10 minutes",
@@ -73,6 +65,14 @@ const CAMS = [
     elevation: "10,700'",
     type: "youtube",
     videoId: "_wOIgFEMypY",
+  },
+    {
+    id: "beaver",
+    resort: "Beaver Creek",
+    cam: "Snow Stake",
+    elevation: "11,440'",
+    type: "iframe",
+    src: "https://player.brownrice.com/embed/bcsnowstake2",
   },
   {
     id: "steamboat-mid",
