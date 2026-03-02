@@ -44,9 +44,8 @@ const CAMS = [
     resort: "Beaver Creek",
     cam: "Snow Stake",
     elevation: "11,440'",
-    type: "image",
-    proxyUrl:
-      "/api/cam?src=https://streamer5.brownrice.com/cam-images/bcsnowstake2.jpg",
+    type: "iframe",
+    src: "https://player.brownrice.com/embed/bcsnowstake2",
   },
   {
     id: "breck",
@@ -118,7 +117,7 @@ function CamFeed({ cam }) {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (cam.type === "youtube") {
+    if (cam.type === "youtube" || cam.type === "iframe") {
       setLoading(false);
       return;
     }
@@ -160,7 +159,13 @@ function CamFeed({ cam }) {
       </div>
     );
   }
-
+if (cam.type === "iframe") {
+    return (
+      <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", background: "#000", borderRadius: 10, overflow: "hidden" }}>
+        <iframe src={cam.src} style={{ width: "100%", height: "100%", border: "none" }} allow="autoplay; encrypted-media" allowFullScreen title={`${cam.resort} ${cam.cam}`} />
+      </div>
+    );
+  }
   return (
     <div
       style={{
