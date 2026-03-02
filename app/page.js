@@ -6,7 +6,7 @@ const CAMS = [
   {
     id: "copper",
     resort: "Copper Mountain",
-    cam: "Snow Stake",
+    cam: "Snow Stake - Static image, updates every 5 minutes",
     elevation: "11,050'",
     type: "image",
     proxyUrl:
@@ -15,7 +15,7 @@ const CAMS = [
   {
     id: "abay",
     resort: "Arapahoe Basin",
-    cam: "Snow Stake",
+    cam: "Snow Stake - Static image, updates every 5 minutes",
     elevation: "10,780'",
     type: "image",
     proxyUrl:
@@ -23,8 +23,8 @@ const CAMS = [
   },
   {
     id: "vail-summit",
-    resort: "Vail",
-    cam: "Summit Snow Stake",
+    resort: "Vail Summit",
+    cam: "Summit Snow Stake - Static image, updates every 5 minutes",
     elevation: "11,250'",
     type: "image",
     proxyUrl:
@@ -32,7 +32,7 @@ const CAMS = [
   },
   {
     id: "vail-bluesky",
-    resort: "Vail",
+    resort: "Vail Blue Sky Basin",
     cam: "Blue Sky Basin",
     elevation: "11,440'",
     type: "image",
@@ -50,7 +50,7 @@ const CAMS = [
   {
     id: "breck",
     resort: "Breckenridge",
-    cam: "Snow Stake",
+    cam: "Snow Stake, Static Image updated every 10 minutes",
     elevation: "11,800'",
     type: "timecam",
     baseUrl:
@@ -60,7 +60,7 @@ const CAMS = [
   {
     id: "keystone",
     resort: "Keystone",
-    cam: "Snow Stake",
+    cam: "Snow Stake, Static image updates every 5 minutes",
     elevation: "11,640'",
     type: "image",
     proxyUrl:
@@ -76,7 +76,7 @@ const CAMS = [
   },
   {
     id: "steamboat-mid",
-    resort: "Steamboat",
+    resort: "Steamboat Mid-Mountain",
     cam: "Mid-Mountain Stake",
     elevation: "9,080'",
     type: "youtube",
@@ -84,7 +84,7 @@ const CAMS = [
   },
   {
     id: "steamboat-summit",
-    resort: "Steamboat",
+    resort: "Steamboat Summit",
     cam: "Champagne Powder",
     elevation: "10,384'",
     type: "youtube",
