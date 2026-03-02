@@ -6,7 +6,7 @@ const CAMS = [
   {
     id: "copper",
     resort: "Copper Mountain",
-    cam: "Static image updates every 5 minutes",
+    cam: "Updates every 5 minutes",
     elevation: "11,050'",
     type: "image",
     proxyUrl:
@@ -15,7 +15,7 @@ const CAMS = [
   {
     id: "abay",
     resort: "Arapahoe Basin",
-    cam: "Static image updates every 5 minutes",
+    cam: "Updates every 5 minutes",
     elevation: "10,780'",
     type: "image",
     proxyUrl:
@@ -24,7 +24,7 @@ const CAMS = [
   {
     id: "vail-summit",
     resort: "Vail Summit",
-    cam: "Static image updates every 5 minutes",
+    cam: "Updates every 5 minutes",
     elevation: "11,250'",
     type: "image",
     proxyUrl:
@@ -33,7 +33,7 @@ const CAMS = [
   {
     id: "vail-bluesky",
     resort: "Vail Blue Sky Basin",
-    cam: "Static image updates every 5 minutes",
+    cam: "Updates every 5 minutes",
     elevation: "11,440'",
     type: "image",
     proxyUrl:
@@ -42,7 +42,7 @@ const CAMS = [
   {
     id: "breck",
     resort: "Breckenridge",
-    cam: "Static image updates every 10 minutes",
+    cam: "Updates every 10 minutes",
     elevation: "11,800'",
     type: "timecam",
     baseUrl:
@@ -52,7 +52,7 @@ const CAMS = [
   {
     id: "keystone",
     resort: "Keystone",
-    cam: "Static image updates every 5 minutes",
+    cam: "Updates every 5 minutes",
     elevation: "11,640'",
     type: "image",
     proxyUrl:
