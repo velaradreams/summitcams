@@ -14,7 +14,7 @@ const CAMS = [
   },
   {
     id: "abay",
-    resort: "Arapahoe Basin",
+    resort: "Flavorbasin V: May 9th",
     cam: "Updates every 5 minutes",
     elevation: "10,780'",
     type: "image",
