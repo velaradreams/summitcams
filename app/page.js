@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { CAMS, timecamUpstreamUrl } from "./cams";
+import { CAMS, proxySrc } from "./cams";
 
 const PREFS_KEY = "sc:prefs:v1";
 
@@ -17,11 +17,6 @@ function loadPrefs() {
   } catch {
     return { favs: [], hidden: [] };
   }
-}
-
-function proxySrc(cam) {
-  const src = cam.type === "timecam" ? timecamUpstreamUrl(cam) : cam.src;
-  return `/api/cam?src=${src}`;
 }
 
 const mono = "var(--font-mono), monospace";
@@ -518,11 +513,31 @@ export default function Home() {
             .live
           </span>
         </div>
-        {timeStr && (
-          <span style={{ fontSize: 11, color: "#475569", fontFamily: mono }}>
-            {timeStr}
-          </span>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {timeStr && (
+            <span style={{ fontSize: 11, color: "#475569", fontFamily: mono }}>
+              {timeStr}
+            </span>
+          )}
+          <a
+            href="/whiteroom"
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: "0.14em",
+              fontFamily: mono,
+              color: "#6ee7b7",
+              background: "rgba(110,231,183,0.08)",
+              border: "1px solid rgba(110,231,183,0.35)",
+              borderRadius: 999,
+              padding: "5px 11px",
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            ❄ THE WHITE ROOM
+          </a>
+        </div>
       </header>
 
       {/* Region quick-nav */}

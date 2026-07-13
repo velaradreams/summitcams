@@ -366,6 +366,20 @@ export const CAMS = [
   },
 ];
 
+// The White Room default roster — 9 cams for Denver/Summit County locals,
+// in display order. User favorites take precedence; live cams backfill.
+export const WHITE_ROOM_DEFAULT = [
+  "copper",
+  "abay",
+  "breck",
+  "keystone",
+  "loveland-stake",
+  "winterpark",
+  "vail-summit",
+  "vail-bluesky",
+  "beaver",
+];
+
 // Upstream URL for a timecam-type cam (frames are named by 10-minute UTC buckets).
 export function timecamUpstreamUrl(cam, now = new Date()) {
   const mins = now.getUTCMinutes();
@@ -383,6 +397,12 @@ export function timecamUpstreamUrl(cam, now = new Date()) {
     m = p(adj.getUTCMinutes());
   const hour = `${Y}_${M}_${D}_${H}`;
   return `${cam.baseUrl}/${hour}/${cam.camId}_${Y}_${M}_${D}_${H}_${m}_00_00.jpg`;
+}
+
+// Same-origin proxy URL for a proxied cam's image (image or timecam types).
+export function proxySrc(cam) {
+  const src = cam.type === "timecam" ? timecamUpstreamUrl(cam) : cam.src;
+  return `/api/cam?src=${src}`;
 }
 
 // Upstream image URL for any proxied cam (image or timecam), or null.
