@@ -1,13 +1,38 @@
 import { CAMS, upstreamUrl, upstreamHeaders, isSummer } from "../cams";
 
-// Check every proxied cam's upstream. YouTube/iframe cams are not checkable
-// server-side and always report "ok". States: ok | offseason | down.
+// YouTube liveness: the watch page embeds isLiveNow in player microformat.
+// Conservative: only report not-live when we clearly got a real watch page
+// that lacks the live marker — bot walls / fetch failures assume ok.
+async function youtubeIsLive(videoId) {
+  try {
+    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: upstreamHeaders("www.youtube.com"),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return true;
+    const html = await res.text();
+    if (!html.includes('"videoDetails"')) return true;
+    return html.includes('"isLiveNow":true') || html.includes('"isLive":true');
+  } catch {
+    return true;
+  }
+}
+
+// Check every cam's upstream. Image/timecam cams are fetched through the same
+// headers as the proxy; YouTube cams are checked for live status; iframe cams
+// are not checkable and always report "ok". States: ok | offseason | down.
 export async function checkAllCams() {
   const checks = CAMS.map(async (cam) => {
     // verification: "validated" = season-proven original; "untested" = added
     // 2026-07 from research — serves an image, but not yet confirmed to be a
     // real snow-stake view. Promote to "validated" after a winter eyeball pass.
     const v = cam.verification || "untested";
+    if (cam.type === "youtube") {
+      const live = await youtubeIsLive(cam.videoId);
+      if (live) return [cam.id, { state: "ok", verification: v }];
+      const state = cam.seasonal && isSummer() ? "offseason" : "down";
+      return [cam.id, { state, verification: v }];
+    }
     const url = upstreamUrl(cam);
     if (!url) return [cam.id, { state: "ok", verification: v }];
     try {

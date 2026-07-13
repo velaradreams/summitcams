@@ -172,7 +172,7 @@ export const CAMS = [
     elevation: "10,384'",
     lat: 40.455,
     lon: -106.744,
-    seasonal: false,
+    seasonal: true,
     type: "youtube",
     videoId: "8w4tZE2k7AE",
   },
