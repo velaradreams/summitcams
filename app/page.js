@@ -211,9 +211,27 @@ function CamCard({ cam, state, snowIn, prefs, actions, isFav }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>
-            {cam.resort}
-          </span>
+          {cam.website ? (
+            <a
+              href={cam.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="resort-link"
+              title={`${cam.resort} official site`}
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: "#e2e8f0",
+                textDecoration: "none",
+              }}
+            >
+              {cam.resort}
+            </a>
+          ) : (
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>
+              {cam.resort}
+            </span>
+          )}
           <span style={{ fontSize: 11, color: "#475569", fontWeight: 500 }}>
             {cam.cam}
           </span>
@@ -460,6 +478,7 @@ export default function Home() {
           padding: 4px 10px; cursor: pointer; white-space: nowrap;
         }
         .chip:hover { color: #6ee7b7; border-color: #334155; }
+        .resort-link:hover { color: #6ee7b7 !important; text-decoration: underline !important; }
         html { scroll-behavior: smooth; }
       `}</style>
 
@@ -606,11 +625,20 @@ export default function Home() {
                     }}
                   >
                     <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                      <span
-                        style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}
+                      <a
+                        href={cam.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="resort-link"
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "#64748b",
+                          textDecoration: "none",
+                        }}
                       >
                         {cam.resort}
-                      </span>
+                      </a>
                       <span style={{ fontSize: 10, color: "#334155" }}>
                         {cam.cam}
                       </span>

@@ -6,6 +6,7 @@
 export const CAMS = [
   {
     id: "copper",
+    website: "https://www.coppercolorado.com/",
     verification: "validated",
     resort: "Copper Mountain",
     cam: "Snow Stake",
@@ -19,6 +20,7 @@ export const CAMS = [
   },
   {
     id: "abay",
+    website: "https://www.arapahoebasin.com/",
     verification: "validated",
     resort: "Arapahoe Basin",
     cam: "Snow Stake",
@@ -32,6 +34,7 @@ export const CAMS = [
   },
   {
     id: "breck",
+    website: "https://www.breckenridge.com/",
     verification: "validated",
     resort: "Breckenridge",
     cam: "Snow Stake",
@@ -47,6 +50,7 @@ export const CAMS = [
   },
   {
     id: "keystone",
+    website: "https://www.keystoneresort.com/",
     verification: "validated",
     resort: "Keystone",
     cam: "Snow Stake",
@@ -60,6 +64,7 @@ export const CAMS = [
   },
   {
     id: "vail-summit",
+    website: "https://www.vail.com/",
     verification: "validated",
     resort: "Vail Summit",
     cam: "Snow Stake",
@@ -73,6 +78,7 @@ export const CAMS = [
   },
   {
     id: "vail-bluesky",
+    website: "https://www.vail.com/",
     verification: "validated",
     resort: "Vail Blue Sky Basin",
     cam: "Snow Stake",
@@ -86,6 +92,7 @@ export const CAMS = [
   },
   {
     id: "beaver",
+    website: "https://www.beavercreek.com/",
     verification: "validated",
     resort: "Beaver Creek",
     cam: "Snow Stake",
@@ -99,6 +106,7 @@ export const CAMS = [
   },
   {
     id: "loveland-stake",
+    website: "https://skiloveland.com/",
     verification: "untested",
     resort: "Loveland",
     cam: "Snow Stake",
@@ -112,6 +120,7 @@ export const CAMS = [
   },
   {
     id: "eldora-stake",
+    website: "https://www.eldora.com/",
     verification: "untested",
     resort: "Eldora",
     cam: "Snow Stake",
@@ -127,6 +136,7 @@ export const CAMS = [
   },
   {
     id: "winterpark",
+    website: "https://www.winterparkresort.com/",
     verification: "validated",
     resort: "Winter Park",
     cam: "Snow Stake",
@@ -140,6 +150,7 @@ export const CAMS = [
   },
   {
     id: "steamboat-mid",
+    website: "https://www.steamboat.com/",
     verification: "validated",
     resort: "Steamboat Mid-Mountain",
     cam: "Mid-Mountain Stake",
@@ -153,6 +164,7 @@ export const CAMS = [
   },
   {
     id: "steamboat-summit",
+    website: "https://www.steamboat.com/",
     verification: "validated",
     resort: "Steamboat Summit",
     cam: "Champagne Powder",
@@ -166,6 +178,7 @@ export const CAMS = [
   },
   {
     id: "aspen-mtn-stake",
+    website: "https://www.aspensnowmass.com/",
     verification: "untested",
     resort: "Aspen Mountain",
     cam: "Snow Stake",
@@ -179,6 +192,7 @@ export const CAMS = [
   },
   {
     id: "aspen-highlands-stake",
+    website: "https://www.aspensnowmass.com/",
     verification: "untested",
     resort: "Aspen Highlands",
     cam: "Snow Stake",
@@ -192,6 +206,7 @@ export const CAMS = [
   },
   {
     id: "snowmass-stake",
+    website: "https://www.aspensnowmass.com/",
     verification: "untested",
     resort: "Snowmass",
     cam: "Snow Stake",
@@ -205,6 +220,7 @@ export const CAMS = [
   },
   {
     id: "buttermilk-stake",
+    website: "https://www.aspensnowmass.com/",
     verification: "untested",
     resort: "Buttermilk",
     cam: "Snow Stake",
@@ -218,6 +234,7 @@ export const CAMS = [
   },
   {
     id: "cb-pow",
+    website: "https://www.skicb.com/",
     verification: "untested",
     resort: "Crested Butte",
     cam: "PowCam Snow Stake",
@@ -231,6 +248,7 @@ export const CAMS = [
   },
   {
     id: "telluride-powcam",
+    website: "https://tellurideskiresort.com/",
     verification: "untested",
     resort: "Telluride",
     cam: "PowCam Snow Stake",
@@ -245,6 +263,7 @@ export const CAMS = [
   },
   {
     id: "monarch-powder",
+    website: "https://skimonarch.com/",
     verification: "untested",
     resort: "Monarch",
     cam: "Powder Cam (stake)",
@@ -259,6 +278,7 @@ export const CAMS = [
   },
   {
     id: "wolfcreek-base",
+    website: "https://wolfcreekski.com/",
     verification: "untested",
     resort: "Wolf Creek",
     cam: "Base Cam (no stake cam)",
