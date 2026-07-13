@@ -5,14 +5,15 @@ export const metadata = {
   openGraph: {
     title: "SummitCams — Colorado Snow Stake Webcams",
     description:
-      "Live snow stake webcams from 9 Colorado ski resorts, all on one page.",
+      "Live snow stake webcams from Colorado ski resorts, all on one page.",
     url: "https://summitcams.live",
     siteName: "SummitCams",
     type: "website",
   },
-  icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏔️</text></svg>",
-  },
+};
+
+export const viewport = {
+  themeColor: "#060a13",
 };
 
 export default function RootLayout({ children }) {

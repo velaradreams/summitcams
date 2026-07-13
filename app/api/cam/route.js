@@ -1,17 +1,4 @@
-const ALLOWED_DOMAINS = [
-  "img.hdrelay.com",
-  "live9.brownrice.com",
-  "live6.brownrice.com",
-  "streamer5.brownrice.com",
-  "terra.timecam.tv",
-  "cache.snow.com",
-];
-
-const REFERER_MAP = {
-  "img.hdrelay.com": "https://www.hdrelay.com/",
-  "terra.timecam.tv": "https://www.breckenridge.com/",
-  "cache.snow.com": "https://www.keystoneresort.com/",
-};
+import { proxiedHostnames, upstreamHeaders } from "../../cams";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -34,28 +21,16 @@ export async function GET(request) {
     });
   }
 
-  if (!ALLOWED_DOMAINS.includes(srcUrl.hostname)) {
+  if (!proxiedHostnames().includes(srcUrl.hostname)) {
     return new Response(JSON.stringify({ error: "Domain not allowed" }), {
       status: 403,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  const headers = {
-    "User-Agent":
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-  };
-
-  const referer = REFERER_MAP[srcUrl.hostname];
-  if (referer) {
-    headers["Referer"] = referer;
-  }
-
   try {
     const upstream = await fetch(src, {
-      headers,
+      headers: upstreamHeaders(srcUrl.hostname),
       signal: AbortSignal.timeout(10000),
     });
 

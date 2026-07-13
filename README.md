@@ -19,10 +19,22 @@ Colorado snow stake webcam aggregator. All cams on one scrollable page.
 
 ## Architecture
 
-- **Frontend**: Next.js 14 (App Router) — single scrollable page
-- **Backend**: Edge API route at `/api/cam` — proxies static images to bypass CORS/hotlink protection
+- **Cam registry**: `app/cams.js` — single source of truth for every cam
+  (metadata, region, season, lat/lon). The proxy allowlist, health checks, and
+  snow lookups all derive from it. Adding a cam = one registry entry.
+  Never rename a cam `id` once shipped (it's the localStorage prefs key).
+- **Frontend**: Next.js 14 (App Router) — single scrollable page, grouped by
+  region, with localStorage favorites/reorder/hide (`sc:prefs:v1`).
+- **API routes** (all Node runtime):
+  - `/api/cam` — proxies static images to bypass CORS/hotlink protection
+  - `/api/status` — live upstream check per cam; drives off-season/down UI
+  - `/api/health` — daily cron (vercel.json); Telegram digest of broken cams
+    (optional: set `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` env vars)
+  - `/api/snow` — trailing-24h snowfall per cam location (Open-Meteo, free)
+- **Seasons**: `seasonal: true` cams that 404 in May–Oct show as "off-season",
+  not broken, and don't alert.
 - **YouTube feeds**: Embedded directly via iframe (no proxy needed)
-- **Hosting**: Vercel
+- **Hosting**: Vercel (PWA manifest included; installs to a phone home screen)
 
 ## Deploy to Vercel
 

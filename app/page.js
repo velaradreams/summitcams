@@ -1,115 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { CAMS, timecamUpstreamUrl } from "./cams";
 
-const CAMS = [
-  {
-    id: "copper",
-    resort: "Copper Mountain",
-    cam: "Updates every 5 minutes",
-    elevation: "11,050'",
-    type: "image",
-    proxyUrl:
-      "/api/cam?src=https://img.hdrelay.com/frames/fb469125-f1f3-459f-aeb4-98cb674e395f/default/last.jpg",
-  },
-  {
-    id: "abay",
-    resort: "Flavorbasin V: May 9th",
-    cam: "Updates every 5 minutes",
-    elevation: "10,780'",
-    type: "image",
-    proxyUrl:
-      "/api/cam?src=https://img.hdrelay.com/frames/929449a8-672b-46c4-8191-b1a6d0842a3f/default/last.jpg",
-  },
-  {
-    id: "vail-summit",
-    resort: "Vail Summit",
-    cam: "Updates every 5 minutes",
-    elevation: "11,250'",
-    type: "image",
-    proxyUrl:
-      "/api/cam?src=https://live9.brownrice.com/cam-images/vailsnowsummit.jpg",
-  },
-  {
-    id: "vail-bluesky",
-    resort: "Vail Blue Sky Basin",
-    cam: "Updates every 5 minutes",
-    elevation: "11,440'",
-    type: "image",
-    proxyUrl:
-      "/api/cam?src=https://live6.brownrice.com/cam-images/vailbluesky.jpg",
-  },
-  {
-    id: "breck",
-    resort: "Breckenridge",
-    cam: "Updates every 10 minutes",
-    elevation: "11,800'",
-    type: "timecam",
-    baseUrl:
-      "https://terra.timecam.tv/express/mediablock/timestreams/vailresort/breckenridge-snowstake-ca~640/hour",
-    camId: "breckenridge-snowstake-ca~640",
-  },
-  {
-    id: "keystone",
-    resort: "Keystone",
-    cam: "Updates every 5 minutes",
-    elevation: "11,640'",
-    type: "image",
-    proxyUrl:
-      "/api/cam?src=https://cache.snow.com/Mtncams/KeySnowStake.jpg",
-  },
-  {
-    id: "winterpark",
-    resort: "Winter Park",
-    cam: "Snow Stake",
-    elevation: "10,700'",
-    type: "youtube",
-    videoId: "_wOIgFEMypY",
-  },
-    {
-    id: "beaver",
-    resort: "Beaver Creek",
-    cam: "Snow Stake",
-    elevation: "11,440'",
-    type: "iframe",
-    src: "https://player.brownrice.com/embed/bcsnowstake2",
-  },
-  {
-    id: "steamboat-mid",
-    resort: "Steamboat Mid-Mountain",
-    cam: "Mid-Mountain Stake",
-    elevation: "9,080'",
-    type: "youtube",
-    videoId: "lKc9xwndUK4",
-  },
-  {
-    id: "steamboat-summit",
-    resort: "Steamboat Summit",
-    cam: "Champagne Powder",
-    elevation: "10,384'",
-    type: "youtube",
-    videoId: "8w4tZE2k7AE",
-  },
-];
+const PREFS_KEY = "sc:prefs:v1";
 
-function getTimecamUrl(cam) {
-  const now = new Date();
-  const mins = now.getUTCMinutes();
-  const rounded = Math.floor(mins / 10) * 10 - 10;
-  const adj = new Date(now);
-  adj.setUTCMinutes(rounded < 0 ? rounded + 60 : rounded);
-  if (rounded < 0) adj.setUTCHours(adj.getUTCHours() - 1);
-  adj.setUTCSeconds(0);
-  adj.setUTCMilliseconds(0);
-  const p = (n) => String(n).padStart(2, "0");
-  const Y = adj.getUTCFullYear(),
-    M = p(adj.getUTCMonth() + 1),
-    D = p(adj.getUTCDate());
-  const H = p(adj.getUTCHours()),
-    m = p(adj.getUTCMinutes());
-  const hour = `${Y}_${M}_${D}_${H}`;
-  return `/api/cam?src=${cam.baseUrl}/${hour}/${cam.camId}_${Y}_${M}_${D}_${H}_${m}_00_00.jpg`;
+function loadPrefs() {
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    if (!raw) return { favs: [], hidden: [] };
+    const p = JSON.parse(raw);
+    return {
+      favs: Array.isArray(p.favs) ? p.favs : [],
+      hidden: Array.isArray(p.hidden) ? p.hidden : [],
+    };
+  } catch {
+    return { favs: [], hidden: [] };
+  }
 }
+
+function proxySrc(cam) {
+  const src = cam.type === "timecam" ? timecamUpstreamUrl(cam) : cam.src;
+  return `/api/cam?src=${src}`;
+}
+
+const mono = "'JetBrains Mono', monospace";
 
 function CamFeed({ cam }) {
   const [imgSrc, setImgSrc] = useState(null);
@@ -122,9 +37,11 @@ function CamFeed({ cam }) {
       return;
     }
     const getSrc = () => {
-      const base =
-        cam.type === "timecam" ? getTimecamUrl(cam) : cam.proxyUrl;
-      return base + (base.includes("?") ? "&" : "?") + "t=" + Date.now();
+      const base = proxySrc(cam);
+      // Bucket the cache-buster to the minute so all visitors share one URL
+      // per minute and the CDN cache (s-maxage=30) actually absorbs traffic.
+      const bucket = Math.floor(Date.now() / 60000);
+      return base + (base.includes("?") ? "&" : "?") + "t=" + bucket;
     };
     setImgSrc(getSrc());
     setLoading(true);
@@ -159,10 +76,26 @@ function CamFeed({ cam }) {
       </div>
     );
   }
-if (cam.type === "iframe") {
+  if (cam.type === "iframe") {
     return (
-      <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", background: "#000", borderRadius: 10, overflow: "hidden" }}>
-        <iframe src={cam.src} style={{ width: "100%", height: "100%", border: "none" }} allow="autoplay; encrypted-media" allowFullScreen title={`${cam.resort} ${cam.cam}`} />
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          aspectRatio: "16/9",
+          background: "#000",
+          borderRadius: 10,
+          overflow: "hidden",
+        }}
+      >
+        <iframe
+          src={cam.src}
+          style={{ width: "100%", height: "100%", border: "none" }}
+          allow="autoplay; encrypted-media"
+          allowFullScreen
+          loading="lazy"
+          title={`${cam.resort} ${cam.cam}`}
+        />
       </div>
     );
   }
@@ -181,6 +114,7 @@ if (cam.type === "iframe") {
         <img
           src={imgSrc}
           alt={`${cam.resort} ${cam.cam}`}
+          loading="lazy"
           style={{
             width: "100%",
             height: "100%",
@@ -228,7 +162,7 @@ if (cam.type === "iframe") {
             style={{
               fontSize: 10,
               color: "#334155",
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: mono,
               letterSpacing: "0.05em",
             }}
           >
@@ -240,8 +174,158 @@ if (cam.type === "iframe") {
   );
 }
 
+function CtrlButton({ onClick, title, active, children }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        background: "none",
+        border: "none",
+        padding: "0 3px",
+        cursor: "pointer",
+        fontSize: 12,
+        lineHeight: 1,
+        color: active ? "#6ee7b7" : "#334155",
+        fontFamily: mono,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function CamCard({ cam, state, snowIn, prefs, actions, isFav }) {
+  const favIndex = prefs.favs.indexOf(cam.id);
+  return (
+    <div className="cam-entry" id={`cam-${cam.id}`}>
+      {/* Label bar */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          marginBottom: 6,
+          padding: "0 2px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>
+            {cam.resort}
+          </span>
+          <span style={{ fontSize: 11, color: "#475569", fontWeight: 500 }}>
+            {cam.cam}
+          </span>
+          {snowIn > 0 && (
+            <span
+              style={{
+                fontSize: 10,
+                color: "#7dd3fc",
+                fontWeight: 700,
+                fontFamily: mono,
+              }}
+              title="Snowfall last 24h (model estimate — trust the stake)"
+            >
+              ❄ {snowIn}&quot; 24h
+            </span>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {cam.type === "youtube" && state === "ok" && (
+            <span
+              style={{
+                fontSize: 8,
+                fontWeight: 700,
+                color: "#dc2626",
+                letterSpacing: "0.1em",
+                fontFamily: mono,
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+              }}
+            >
+              <span
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: "50%",
+                  background: "#dc2626",
+                  animation: "pulse 1.5s ease infinite",
+                }}
+              />
+              LIVE
+            </span>
+          )}
+          <span
+            style={{
+              fontSize: 10,
+              color: "#6ee7b7",
+              fontWeight: 600,
+              fontFamily: mono,
+              opacity: 0.8,
+            }}
+          >
+            {cam.elevation}
+          </span>
+          {isFav && (
+            <>
+              <CtrlButton
+                title="Move up"
+                onClick={() => actions.moveFav(cam.id, -1)}
+              >
+                ↑
+              </CtrlButton>
+              <CtrlButton
+                title="Move down"
+                onClick={() => actions.moveFav(cam.id, 1)}
+              >
+                ↓
+              </CtrlButton>
+            </>
+          )}
+          <CtrlButton
+            title={favIndex >= 0 ? "Unpin from favorites" : "Pin to top"}
+            active={favIndex >= 0}
+            onClick={() => actions.toggleFav(cam.id)}
+          >
+            {favIndex >= 0 ? "★" : "☆"}
+          </CtrlButton>
+          <CtrlButton title="Hide this cam" onClick={() => actions.toggleHide(cam.id)}>
+            ✕
+          </CtrlButton>
+        </div>
+      </div>
+
+      {/* Feed, or compact down-state */}
+      {state === "down" ? (
+        <div
+          style={{
+            borderRadius: 10,
+            border: "1px solid #1e293b",
+            background: "linear-gradient(135deg, #0c1220 0%, #111827 100%)",
+            padding: "14px 16px",
+            fontSize: 10,
+            color: "#475569",
+            fontFamily: mono,
+            letterSpacing: "0.05em",
+          }}
+        >
+          ⚠ feed offline — flagged, back soon
+        </div>
+      ) : (
+        <CamFeed cam={cam} />
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const [time, setTime] = useState(null);
+  const [statuses, setStatuses] = useState({});
+  const [snow, setSnow] = useState({});
+  const [prefs, setPrefs] = useState({ favs: [], hidden: [] });
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
 
   useEffect(() => {
     setTime(new Date());
@@ -249,13 +333,100 @@ export default function Home() {
     return () => clearInterval(t);
   }, []);
 
+  useEffect(() => {
+    setPrefs(loadPrefs());
+    setPrefsLoaded(true);
+    fetch("/api/status")
+      .then((r) => r.json())
+      .then((d) => setStatuses(d.statuses || {}))
+      .catch(() => {});
+    fetch("/api/snow")
+      .then((r) => r.json())
+      .then((d) => setSnow(d.snow || {}))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!prefsLoaded) return;
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    } catch {}
+  }, [prefs, prefsLoaded]);
+
+  const actions = useMemo(
+    () => ({
+      toggleFav: (id) =>
+        setPrefs((p) => ({
+          ...p,
+          favs: p.favs.includes(id)
+            ? p.favs.filter((f) => f !== id)
+            : [...p.favs, id],
+        })),
+      moveFav: (id, dir) =>
+        setPrefs((p) => {
+          const favs = [...p.favs];
+          const i = favs.indexOf(id);
+          const j = i + dir;
+          if (i < 0 || j < 0 || j >= favs.length) return p;
+          [favs[i], favs[j]] = [favs[j], favs[i]];
+          return { ...p, favs };
+        }),
+      toggleHide: (id) =>
+        setPrefs((p) => ({
+          ...p,
+          hidden: p.hidden.includes(id)
+            ? p.hidden.filter((h) => h !== id)
+            : [...p.hidden, id],
+          favs: p.favs.filter((f) => f !== id),
+        })),
+    }),
+    []
+  );
+
+  const stateOf = (id) => statuses[id]?.state || "ok";
+  const byId = useMemo(() => Object.fromEntries(CAMS.map((c) => [c.id, c])), []);
+
+  const favCams = prefs.favs.map((id) => byId[id]).filter(Boolean);
+  const hiddenCams = CAMS.filter((c) => prefs.hidden.includes(c.id));
+  const mainCams = CAMS.filter(
+    (c) => !prefs.hidden.includes(c.id) && !prefs.favs.includes(c.id)
+  );
+  const activeCams = mainCams.filter((c) => stateOf(c.id) !== "offseason");
+  const offseasonCams = mainCams.filter((c) => stateOf(c.id) === "offseason");
+
+  const regions = [];
+  for (const cam of activeCams) {
+    let g = regions.find((r) => r.name === cam.region);
+    if (!g) {
+      g = { name: cam.region, cams: [] };
+      regions.push(g);
+    }
+    g.cams.push(cam);
+  }
+
   const timeStr = time
     ? time.toLocaleTimeString("en-US", {
         hour: "numeric",
         minute: "2-digit",
         timeZone: "America/Denver",
+        timeZoneName: "short",
       })
     : "";
+
+  const sectionHeader = (label) => (
+    <div
+      style={{
+        fontSize: 9,
+        fontWeight: 700,
+        color: "#475569",
+        letterSpacing: "0.18em",
+        fontFamily: mono,
+        margin: "8px 2px 0",
+      }}
+    >
+      {label}
+    </div>
+  );
 
   return (
     <div
@@ -281,12 +452,21 @@ export default function Home() {
           animation: spin 1s linear infinite;
         }
         .cam-entry { animation: fadeUp 0.5s ease both; }
+        .chip {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 9px; letter-spacing: 0.08em;
+          color: #64748b; background: #0c1220;
+          border: 1px solid #1e293b; border-radius: 999px;
+          padding: 4px 10px; cursor: pointer; white-space: nowrap;
+        }
+        .chip:hover { color: #6ee7b7; border-color: #334155; }
+        html { scroll-behavior: smooth; }
       `}</style>
 
       {/* Header */}
       <header
         style={{
-          padding: "18px 20px 14px",
+          padding: "18px 20px 10px",
           maxWidth: 900,
           margin: "0 auto",
           display: "flex",
@@ -315,125 +495,181 @@ export default function Home() {
           >
             SUMMIT<span style={{ color: "#6ee7b7" }}>CAMS</span>
           </span>
-          <span
-            style={{
-              fontSize: 9,
-              color: "#1e293b",
-              fontFamily: "'JetBrains Mono', monospace",
-            }}
-          >
+          <span style={{ fontSize: 9, color: "#1e293b", fontFamily: mono }}>
             .live
           </span>
         </div>
         {timeStr && (
-          <span
-            style={{
-              fontSize: 11,
-              color: "#475569",
-              fontFamily: "'JetBrains Mono', monospace",
-            }}
-          >
-            {timeStr}{" "}
-            <span style={{ color: "#1e293b", fontSize: 9 }}>MST</span>
+          <span style={{ fontSize: 11, color: "#475569", fontFamily: mono }}>
+            {timeStr}
           </span>
         )}
       </header>
 
+      {/* Region quick-nav */}
+      {regions.length > 1 && (
+        <nav
+          style={{
+            maxWidth: 900,
+            margin: "0 auto",
+            padding: "0 20px 4px",
+            display: "flex",
+            gap: 6,
+            overflowX: "auto",
+          }}
+        >
+          {regions.map((r) => (
+            <button
+              key={r.name}
+              className="chip"
+              onClick={() =>
+                document
+                  .getElementById(`region-${r.name.replace(/\s+/g, "-")}`)
+                  ?.scrollIntoView({ block: "start" })
+              }
+            >
+              {r.name.toUpperCase()}
+            </button>
+          ))}
+        </nav>
+      )}
+
       {/* Cam list */}
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "0 20px 60px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {CAMS.map((cam, i) => (
-            <div
-              key={cam.id}
-              className="cam-entry"
-              style={{ animationDelay: `${i * 0.04}s` }}
-            >
-              {/* Label bar */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "baseline",
-                  marginBottom: 6,
-                  padding: "0 2px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: "#e2e8f0",
-                    }}
-                  >
-                    {cam.resort}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: "#475569",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {cam.cam}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  {cam.type === "youtube" && (
-                    <span
-                      style={{
-                        fontSize: 8,
-                        fontWeight: 700,
-                        color: "#dc2626",
-                        letterSpacing: "0.1em",
-                        fontFamily: "'JetBrains Mono', monospace",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 3,
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 4,
-                          height: 4,
-                          borderRadius: "50%",
-                          background: "#dc2626",
-                          animation: "pulse 1.5s ease infinite",
-                        }}
-                      />
-                      LIVE
-                    </span>
-                  )}
-                  <span
-                    style={{
-                      fontSize: 10,
-                      color: "#6ee7b7",
-                      fontWeight: 600,
-                      fontFamily: "'JetBrains Mono', monospace",
-                      opacity: 0.8,
-                    }}
-                  >
-                    {cam.elevation}
-                  </span>
-                </div>
-              </div>
+          {/* Favorites */}
+          {favCams.length > 0 && (
+            <>
+              {sectionHeader("★ FAVORITES")}
+              {favCams.map((cam) => (
+                <CamCard
+                  key={cam.id}
+                  cam={cam}
+                  state={stateOf(cam.id)}
+                  snowIn={snow[cam.id]}
+                  prefs={prefs}
+                  actions={actions}
+                  isFav
+                />
+              ))}
+            </>
+          )}
 
-              {/* Feed */}
-              <CamFeed cam={cam} />
+          {/* Regions */}
+          {regions.map((r) => (
+            <div
+              key={r.name}
+              id={`region-${r.name.replace(/\s+/g, "-")}`}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 20,
+                scrollMarginTop: 16,
+              }}
+            >
+              {regions.length > 1 && sectionHeader(r.name.toUpperCase())}
+              {r.cams.map((cam) => (
+                <CamCard
+                  key={cam.id}
+                  cam={cam}
+                  state={stateOf(cam.id)}
+                  snowIn={snow[cam.id]}
+                  prefs={prefs}
+                  actions={actions}
+                  isFav={false}
+                />
+              ))}
             </div>
           ))}
+
+          {/* Off-season */}
+          {offseasonCams.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              {sectionHeader("❄ OFF-SEASON — BACK WHEN THE LIFTS SPIN")}
+              <div
+                style={{
+                  marginTop: 10,
+                  border: "1px solid #131c2e",
+                  borderRadius: 10,
+                  overflow: "hidden",
+                }}
+              >
+                {offseasonCams.map((cam, i) => (
+                  <div
+                    key={cam.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "10px 14px",
+                      borderTop: i > 0 ? "1px solid #0c1220" : "none",
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                      <span
+                        style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}
+                      >
+                        {cam.resort}
+                      </span>
+                      <span style={{ fontSize: 10, color: "#334155" }}>
+                        {cam.cam}
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: 9,
+                        color: "#334155",
+                        fontFamily: mono,
+                      }}
+                    >
+                      {cam.elevation}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Hidden */}
+          {hiddenCams.length > 0 && (
+            <div style={{ textAlign: "center" }}>
+              <button
+                className="chip"
+                onClick={() => setShowHidden((s) => !s)}
+              >
+                {showHidden
+                  ? "COLLAPSE HIDDEN"
+                  : `${hiddenCams.length} HIDDEN CAM${hiddenCams.length > 1 ? "S" : ""} — SHOW`}
+              </button>
+              {showHidden && (
+                <div style={{ marginTop: 10 }}>
+                  {hiddenCams.map((cam) => (
+                    <div
+                      key={cam.id}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "8px 14px",
+                        fontSize: 11,
+                        color: "#475569",
+                      }}
+                    >
+                      <span>
+                        {cam.resort} — {cam.cam}
+                      </span>
+                      <CtrlButton
+                        title="Unhide"
+                        onClick={() => actions.toggleHide(cam.id)}
+                      >
+                        unhide
+                      </CtrlButton>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -449,14 +685,14 @@ export default function Home() {
             style={{
               fontSize: 9,
               color: "#1e293b",
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: mono,
               lineHeight: 2,
             }}
           >
             summitcams.live — Colorado snow stake webcam aggregator
             <br />
             Not affiliated with any resort · Camera feeds from public resort
-            webcam pages
+            webcam pages · Snowfall estimates from Open-Meteo
           </div>
         </footer>
       </main>
