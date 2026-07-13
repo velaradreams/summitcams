@@ -170,15 +170,14 @@ export default function WhiteRoom() {
         </span>
       </header>
 
-      {/* The wall */}
+      {/* The wall — always 3 wide (the box geometry), stepping down on small screens */}
+      <style>{`
+        .wall { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        @media (max-width: 900px) { .wall { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 560px) { .wall { grid-template-columns: 1fr; } }
+      `}</style>
       <main style={{ padding: "0 16px 40px", maxWidth: 1400, margin: "0 auto" }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-            gap: 10,
-          }}
-        >
+        <div className="wall">
           {roster.map((cam) => (
             <Tile key={cam.id} cam={cam} snowIn={snow[cam.id]} />
           ))}
