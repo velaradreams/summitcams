@@ -34,11 +34,17 @@ export async function GET() {
     }
   }
 
+  const untested = CAMS.filter(
+    (c) => (c.verification || "untested") === "untested"
+  ).map((c) => c.id);
+
   return new Response(
     JSON.stringify({
       statuses,
       brokenCount: broken.length,
       alerted,
+      untestedCount: untested.length,
+      untested,
       checkedAt: new Date().toISOString(),
     }),
     { status: 200, headers: { "Content-Type": "application/json" } }

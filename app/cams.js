@@ -6,6 +6,7 @@
 export const CAMS = [
   {
     id: "copper",
+    verification: "validated",
     resort: "Copper Mountain",
     cam: "Snow Stake",
     region: "Summit County",
@@ -18,6 +19,7 @@ export const CAMS = [
   },
   {
     id: "abay",
+    verification: "validated",
     resort: "Arapahoe Basin",
     cam: "Snow Stake",
     region: "Summit County",
@@ -30,6 +32,7 @@ export const CAMS = [
   },
   {
     id: "breck",
+    verification: "validated",
     resort: "Breckenridge",
     cam: "Snow Stake",
     region: "Summit County",
@@ -44,6 +47,7 @@ export const CAMS = [
   },
   {
     id: "keystone",
+    verification: "validated",
     resort: "Keystone",
     cam: "Snow Stake",
     region: "Summit County",
@@ -56,6 +60,7 @@ export const CAMS = [
   },
   {
     id: "vail-summit",
+    verification: "validated",
     resort: "Vail Summit",
     cam: "Snow Stake",
     region: "Vail Valley",
@@ -68,6 +73,7 @@ export const CAMS = [
   },
   {
     id: "vail-bluesky",
+    verification: "validated",
     resort: "Vail Blue Sky Basin",
     cam: "Snow Stake",
     region: "Vail Valley",
@@ -80,6 +86,7 @@ export const CAMS = [
   },
   {
     id: "beaver",
+    verification: "validated",
     resort: "Beaver Creek",
     cam: "Snow Stake",
     region: "Vail Valley",
@@ -92,6 +99,7 @@ export const CAMS = [
   },
   {
     id: "loveland-stake",
+    verification: "untested",
     resort: "Loveland",
     cam: "Snow Stake",
     region: "Front Range",
@@ -104,6 +112,7 @@ export const CAMS = [
   },
   {
     id: "eldora-stake",
+    verification: "untested",
     resort: "Eldora",
     cam: "Snow Stake",
     region: "Front Range",
@@ -118,6 +127,7 @@ export const CAMS = [
   },
   {
     id: "winterpark",
+    verification: "validated",
     resort: "Winter Park",
     cam: "Snow Stake",
     region: "Winter Park",
@@ -130,6 +140,7 @@ export const CAMS = [
   },
   {
     id: "steamboat-mid",
+    verification: "validated",
     resort: "Steamboat Mid-Mountain",
     cam: "Mid-Mountain Stake",
     region: "Steamboat",
@@ -142,6 +153,7 @@ export const CAMS = [
   },
   {
     id: "steamboat-summit",
+    verification: "validated",
     resort: "Steamboat Summit",
     cam: "Champagne Powder",
     region: "Steamboat",
@@ -154,6 +166,7 @@ export const CAMS = [
   },
   {
     id: "aspen-mtn-stake",
+    verification: "untested",
     resort: "Aspen Mountain",
     cam: "Snow Stake",
     region: "Aspen",
@@ -166,6 +179,7 @@ export const CAMS = [
   },
   {
     id: "aspen-highlands-stake",
+    verification: "untested",
     resort: "Aspen Highlands",
     cam: "Snow Stake",
     region: "Aspen",
@@ -178,6 +192,7 @@ export const CAMS = [
   },
   {
     id: "snowmass-stake",
+    verification: "untested",
     resort: "Snowmass",
     cam: "Snow Stake",
     region: "Aspen",
@@ -190,6 +205,7 @@ export const CAMS = [
   },
   {
     id: "buttermilk-stake",
+    verification: "untested",
     resort: "Buttermilk",
     cam: "Snow Stake",
     region: "Aspen",
@@ -202,6 +218,7 @@ export const CAMS = [
   },
   {
     id: "cb-pow",
+    verification: "untested",
     resort: "Crested Butte",
     cam: "PowCam Snow Stake",
     region: "Crested Butte",
@@ -214,6 +231,7 @@ export const CAMS = [
   },
   {
     id: "telluride-powcam",
+    verification: "untested",
     resort: "Telluride",
     cam: "PowCam Snow Stake",
     region: "Telluride",
@@ -227,6 +245,7 @@ export const CAMS = [
   },
   {
     id: "monarch-powder",
+    verification: "untested",
     resort: "Monarch",
     cam: "Powder Cam (stake)",
     region: "Southern Colorado",
@@ -240,6 +259,7 @@ export const CAMS = [
   },
   {
     id: "wolfcreek-base",
+    verification: "untested",
     resort: "Wolf Creek",
     cam: "Base Cam (no stake cam)",
     region: "Southern Colorado",
