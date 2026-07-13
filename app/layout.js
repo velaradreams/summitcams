@@ -1,3 +1,16 @@
+import { DM_Sans, JetBrains_Mono } from "next/font/google";
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono",
+});
+
 export const metadata = {
   title: "SummitCams — Colorado Snow Stake Webcams",
   description:
@@ -18,20 +31,9 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" className={jetbrainsMono.variable}>
       <body
+        className={dmSans.className}
         style={{
           margin: 0,
           padding: 0,

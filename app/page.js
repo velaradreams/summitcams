@@ -24,7 +24,7 @@ function proxySrc(cam) {
   return `/api/cam?src=${src}`;
 }
 
-const mono = "'JetBrains Mono', monospace";
+const mono = "var(--font-mono), monospace";
 
 function CamFeed({ cam }) {
   const [imgSrc, setImgSrc] = useState(null);
@@ -434,7 +434,6 @@ export default function Home() {
         minHeight: "100vh",
         background: "#060a13",
         color: "#e2e8f0",
-        fontFamily: "'DM Sans', sans-serif",
       }}
     >
       <style>{`
@@ -453,7 +452,7 @@ export default function Home() {
         }
         .cam-entry { animation: fadeUp 0.5s ease both; }
         .chip {
-          font-family: 'JetBrains Mono', monospace;
+          font-family: var(--font-mono), monospace;
           font-size: 9px; letter-spacing: 0.08em;
           color: #64748b; background: #0c1220;
           border: 1px solid #1e293b; border-radius: 999px;
