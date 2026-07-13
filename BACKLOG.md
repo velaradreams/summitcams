@@ -9,9 +9,18 @@ Single source of truth for deferred work. Roadmap from the 2026-07-12 analysis.
 3. ~~Health-check cron (/api/health + vercel.json) + Telegram digest + /api/status~~ — DONE 2026-07-13
    (Telegram needs TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID env vars set in Vercel — AJ)
 4. ~~Off-season grouping UI~~ — DONE 2026-07-13 (seasonal+summer+404 → off-season section, no alert)
-5. Coverage matrix for Tier 1+2 resort cams — research pass run 2026-07-13; results being
-   integrated where verified, remainder marked "verify in fall"
-6. Integrate remaining Tier 1/2 cams as they come online in fall
+5. ~~Coverage matrix for Tier 1+2 resort cams~~ — DONE 2026-07-13 (research agent pass)
+6. ~~Integrate Tier 1+2 cams~~ — DONE 2026-07-13: +10 cams (Loveland, Eldora, Monarch,
+   CB PowCam, Telluride PowCam, Aspen ×4 stakes, Wolf Creek base). **Fall re-verification
+   list** (added as seasonal; currently 404 → off-season section; when resorts flip them on
+   they light up automatically, but verify these URLs if they alert as broken in Nov):
+   - Eldora HDRelay GUID 6c30942d… (candidate URL from eldora.com page-data, never seen live)
+   - Monarch webcam.io z7Arw9 latest.jpg (+ 2nd stake 9RmqeM not yet added)
+   - Telluride ipcamlive alias=powcam
+   Extra verified-live cams NOT added (scenic; add if wanted): Monarch Pioneer Top/Sundeck/
+   Pano (player.brownrice.com/snapshot/skimonarch*), CB base/Paradise/Umbrella Bar,
+   Telluride Plaza/BonVivant/HootBrown/JointPoint (ipcamlive), Wolf Creek Summit,
+   Loveland Basin/Chair 1/Ptarmigan. Aspen lift cams are Verkada domain-locked — skip.
 7. ~~Phase A personalization — localStorage favorites (pin/reorder via buttons), hide~~ — DONE 2026-07-13
 8. DECISION GATE — accounts (Phase B): only if cross-device sync demand or snowfall-alerts
    feature gets greenlit. Recommendation: Supabase free tier, magic-link auth,

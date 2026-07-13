@@ -2,20 +2,14 @@
 
 Colorado snow stake webcam aggregator. All cams on one scrollable page.
 
-## Resorts (10 cams)
+## Resorts (20 cams)
 
-| Resort | Cam | Source |
-|--------|-----|--------|
-| Copper Mountain | Snow Stake | HDRelay (proxied) |
-| Arapahoe Basin | Snow Stake | HDRelay (proxied) |
-| Vail | Summit Snow Stake | Brown Rice (proxied) |
-| Vail | Blue Sky Basin | Brown Rice (proxied) |
-| Beaver Creek | Snow Stake | Brown Rice (proxied) |
-| Breckenridge | Snow Stake | Timecam.tv (proxied) |
-| Keystone | Snow Stake | cache.snow.com (proxied) |
-| Winter Park | Snow Stake | YouTube Live |
-| Steamboat | Mid-Mountain Stake | YouTube Live |
-| Steamboat | Champagne Powder | YouTube Live |
+The cam list lives in `app/cams.js` — that registry is the source of truth
+(this README doesn't repeat it, so it can't drift). Coverage: Copper, A-Basin,
+Breck, Keystone, Vail ×2, Beaver Creek, Loveland, Eldora, Winter Park,
+Steamboat ×2, Aspen's four mountains, Crested Butte, Telluride, Monarch,
+Wolf Creek. Cam platforms encountered so far: HDRelay, Brownrice,
+Timecam.tv, cache.snow.com, ipcamlive, webcam.io, YouTube Live.
 
 ## Architecture
 

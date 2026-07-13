@@ -110,11 +110,12 @@ function CamFeed({ cam }) {
         overflow: "hidden",
       }}
     >
+      {/* No loading="lazy" on this img: it's display:none until onLoad, and a
+          hidden img never intersects the viewport, so lazy would never fetch. */}
       {imgSrc && (
         <img
           src={imgSrc}
           alt={`${cam.resort} ${cam.cam}`}
-          loading="lazy"
           style={{
             width: "100%",
             height: "100%",
