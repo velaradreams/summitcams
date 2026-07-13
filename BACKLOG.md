@@ -17,6 +17,10 @@ The high-priority section. Everything here is blocked on winter, not on decision
    - Monarch Powder Cam — webcam.io `z7Arw9/latest.jpg` (404s when frames stale)
    - Telluride PowCam — ipcamlive `alias=powcam` (snapshot.php 302s; alias is stable key)
    - Copper + A-Basin HDRelay frames, Breck Timecam (existing cams, offline every summer)
+   - Purgatory stake — whole `assets.mcp.ski` host is 526 for summer (one re-check also
+     answers whether Hesperus's cam on the same host revived, if that ever matters)
+   - Powderhorn b16.hdrelay.com host — if it breaks, re-fetch player JSON at
+     `manage.hdrelay.com/player/<playerid>` (ids in agent notes / cams.js comment)
 3. **Add Monarch's 2nd stake cam** — webcam.io `9RmqeM` ("Storm Cam", Butterfly marker) once
    frames are fresh; decide if two Monarch stakes is one too many.
 4. **Season sanity pass**: eyeball every card the first powder week — stake visible?
@@ -33,9 +37,16 @@ The high-priority section. Everything here is blocked on winter, not on decision
 
 1–7. ~~Registry, health cron, off-season UI, Tier 1+2 coverage + integration,
    localStorage favorites~~ — ALL DONE + DEPLOYED 2026-07-13. 20 cams live.
-8. **Tier 3 integration — IN PROGRESS 2026-07-13**: Purgatory, Powderhorn, Sunlight,
-   Ski Cooper, Granby Ranch, Howelsen Hill, Silverton (research pass running; AJ greenlit
-   adding all). Any summer-dark findings join the fall list above.
+8. ~~Tier 3 integration~~ — DONE 2026-07-13: +5 cams (Powderhorn stake — research
+   visually CONFIRMED the measurement board; Sunlight stake; Ski Cooper stake as
+   self-hosted HLS iframe; Purgatory stake, summer-dark; Granby Ranch base, no stake).
+   NOT added, with reasons:
+   - Silverton Mountain — no webcam exists (their /webcam/ page 404s)
+   - Kendall Mountain — operating town hill, no webcam
+   - Hesperus — CLOSED since 2023, confirmed closed for 2025-26; skip until it reopens
+   - Howelsen Hill — no official cam; only feed is coloradowebcam.net (a cam company's
+     own product — proxying it ≠ proxying a resort's marketing cam). AJ's call.
+   - OpenSnow rehosts (Purgatory extras, Silverton town cams) — third-party ToS risk.
 9. DECISION GATE — accounts (Phase B): only if cross-device sync demand or snowfall-alerts
    feature gets greenlit. Recommendation: Supabase free tier, magic-link auth,
    `user_cam_prefs (user_id, cam_id, rank, hidden)`, migrate localStorage on first login.

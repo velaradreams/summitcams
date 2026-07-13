@@ -15,7 +15,10 @@ export async function checkAllCams() {
         headers: upstreamHeaders(new URL(url).hostname),
         signal: AbortSignal.timeout(8000),
       });
-      if (res.ok) return [cam.id, { state: "ok", verification: v }];
+      // Some hosts (brownrice) return 200 text/html for nonexistent cam names —
+      // an image cam is only healthy if the response is actually an image.
+      const isImage = (res.headers.get("content-type") || "").startsWith("image/");
+      if (res.ok && isImage) return [cam.id, { state: "ok", verification: v }];
       const state = cam.seasonal && isSummer() ? "offseason" : "down";
       return [cam.id, { state, httpStatus: res.status, verification: v }];
     } catch {
