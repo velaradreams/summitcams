@@ -29,9 +29,9 @@ The high-priority section. Everything here is blocked on winter, not on decision
    everything added 2026-07 = untested, i.e. serves an image but not yet confirmed to be a
    real snow-stake view — some may turn out to be scenic cams). /api/health reports the
    untested list. **Flip untested → validated in app/cams.js as each one passes the eyeball.**
-5. **Prerequisite that shouldn't wait for fall**: set `TELEGRAM_BOT_TOKEN` +
-   `TELEGRAM_CHAT_ID` in Vercel env (AJ) — the fall wake-up detection depends on alerts
-   actually reaching you.
+5. Telegram alerting (BACKLOGGED 2026-07-13 — AJ deprioritized; don't re-pitch): code is
+   live but dormant; enabling = set `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` in Vercel +
+   redeploy. Until then, fall wake-up checks are manual: hit /api/health and read the JSON.
 
 ## Active roadmap
 
