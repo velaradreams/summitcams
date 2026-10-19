@@ -1,6 +1,8 @@
 import { checkAllCams } from "../../lib/health";
 
-// Cached at the CDN so all visitors share one check sweep per 10 minutes.
+// Cached at the CDN so all visitors share one check sweep. stale-while-revalidate
+// serves the last sweep instantly and refreshes it in the background, so no
+// visitor waits on the ~4 s sweep (at low traffic the copy can be hours old).
 export async function GET() {
   const statuses = await checkAllCams();
   return new Response(
@@ -10,7 +12,7 @@ export async function GET() {
       headers: {
         "Content-Type": "application/json",
         "Cache-Control":
-          "public, max-age=60, s-maxage=600, stale-while-revalidate=1200",
+          "public, max-age=60, s-maxage=600, stale-while-revalidate=86400",
       },
     }
   );

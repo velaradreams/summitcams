@@ -15,7 +15,7 @@ export async function GET() {
     const byId = Object.fromEntries(CAMS.map((c) => [c.id, c]));
     const lines = broken.map(([id, s]) => {
       const cam = byId[id];
-      return `• ${cam.resort} — ${cam.cam} (HTTP ${s.httpStatus || "timeout"})`;
+      return `• ${cam.resort} — ${cam.cam} (${s.reason || "down"}${s.httpStatus ? ", HTTP " + s.httpStatus : ""})`;
     });
     const text = `⚠️ summitcams: ${broken.length} cam(s) down\n${lines.join("\n")}`;
     try {
@@ -47,7 +47,14 @@ export async function GET() {
       untested,
       checkedAt: new Date().toISOString(),
     }),
-    { status: 200, headers: { "Content-Type": "application/json" } }
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        // Public hits collapse to one sweep a minute; the cron is unaffected.
+        "Cache-Control": "public, s-maxage=60",
+      },
+    }
   );
 }
 

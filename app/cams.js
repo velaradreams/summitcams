@@ -15,6 +15,7 @@ export const CAMS = [
     lat: 39.501,
     lon: -106.151,
     seasonal: true,
+    stakeClear: "4 AM",
     type: "image",
     src: "https://img.hdrelay.com/frames/fb469125-f1f3-459f-aeb4-98cb674e395f/default/last.jpg",
   },
@@ -43,6 +44,7 @@ export const CAMS = [
     lat: 39.481,
     lon: -106.067,
     seasonal: true,
+    stakeClear: "5 AM",
     type: "timecam",
     baseUrl:
       "https://terra.timecam.tv/express/mediablock/timestreams/vailresort/breckenridge-snowstake-ca~640/hour",
@@ -107,7 +109,7 @@ export const CAMS = [
   {
     id: "loveland-stake",
     website: "https://skiloveland.com/",
-    verification: "untested",
+    verification: "validated",
     resort: "Loveland",
     cam: "Snow Stake",
     region: "Front Range",
@@ -116,7 +118,7 @@ export const CAMS = [
     lon: -105.9,
     seasonal: true,
     type: "image",
-    src: "https://photosskiloveland.com/snowcam/image.jpg",
+    src: "https://cams.skiloveland.com/snowcam/snowcam.jpg",
   },
   {
     id: "eldora-stake",
@@ -130,9 +132,10 @@ export const CAMS = [
     lon: -105.583,
     seasonal: true,
     type: "image",
-    // Candidate URL from eldora.com page-data (POWDR/HDRelay, same as Copper).
-    // Cam offline for summer maintenance — re-verify when it comes back in fall.
-    src: "https://img.hdrelay.com/frames/6c30942d-6116-4b5d-a7d9-141cb6415d07/default/last.jpg",
+    // GUID from eldora.com page-data (POWDR/HDRelay, same as Copper). Not yet
+    // serving frames (stake section hidden off-season) — re-pull it from the
+    // page when Eldora opens if this still 404s.
+    src: "https://img.hdrelay.com/frames/811b9e59-6da4-4e8e-ac5b-d9aec82b0186/default/last.jpg",
   },
   {
     id: "winterpark",
@@ -146,7 +149,7 @@ export const CAMS = [
     lon: -105.762,
     seasonal: true,
     type: "youtube",
-    videoId: "_wOIgFEMypY",
+    videoId: "yj-5Q1vBMaA",
   },
   {
     id: "steamboat-mid",
@@ -174,7 +177,7 @@ export const CAMS = [
     lon: -106.744,
     seasonal: true,
     type: "youtube",
-    videoId: "8w4tZE2k7AE",
+    videoId: "Vz_BJ5NJOM0",
   },
   {
     id: "aspen-mtn-stake",
@@ -232,20 +235,22 @@ export const CAMS = [
     type: "image",
     src: "https://g1.ipcamlive.com/player/snapshot.php?alias=613a4e47724d8",
   },
-  {
-    id: "cb-pow",
-    website: "https://www.skicb.com/",
-    verification: "untested",
-    resort: "Crested Butte",
-    cam: "PowCam Snow Stake",
-    region: "Crested Butte",
-    elevation: "9,375'",
-    lat: 38.899,
-    lon: -106.965,
-    seasonal: true,
-    type: "image",
-    src: "https://player.brownrice.com/snapshot/crestedbuttepow",
-  },
+  // cb-pow: pulled 2026-10-18 — the brownrice snapshot was frozen on a daylight
+  // frame at night. Re-check when Crested Butte opens; the id stays reserved.
+  // {
+  //   id: "cb-pow",
+  //   website: "https://www.skicb.com/",
+  //   verification: "untested",
+  //   resort: "Crested Butte",
+  //   cam: "PowCam Snow Stake",
+  //   region: "Crested Butte",
+  //   elevation: "9,375'",
+  //   lat: 38.899,
+  //   lon: -106.965,
+  //   seasonal: true,
+  //   type: "image",
+  //   src: "https://player.brownrice.com/snapshot/crestedbuttepow",
+  // },
   {
     id: "telluride-powcam",
     website: "https://tellurideskiresort.com/",
@@ -259,6 +264,8 @@ export const CAMS = [
     seasonal: true,
     type: "image",
     // Summer-dark; alias is the stable key (snapshot.php 302s to the live stream).
+    // The resort's webcam page no longer lists a PowCam — if this alias is still
+    // dark after Telluride opens, delete the entry (keep the id reserved).
     src: "https://g1.ipcamlive.com/player/snapshot.php?alias=powcam",
   },
   {
@@ -273,7 +280,8 @@ export const CAMS = [
     lon: -106.332,
     seasonal: true,
     type: "image",
-    // webcam.io: latest.jpg 404s when frames are stale — doubles as offline signal.
+    // webcam.io: latest.jpg keeps returning 200 with the last frame when the cam
+    // stops — the health check's Last-Modified staleness test catches that.
     src: "https://assets2.webcam.io/w/z7Arw9/latest.jpg",
   },
   {
@@ -288,8 +296,10 @@ export const CAMS = [
     lon: -106.3033,
     seasonal: true,
     type: "iframe",
-    // Self-hosted HLS player; no static snapshot endpoint exists.
+    // Self-hosted 1080p HLS player that autoplays (~13 MB/min); no snapshot
+    // endpoint exists. tapToPlay: show a placeholder until the visitor taps.
     src: "https://skicooper.com:8443/stake/",
+    tapToPlay: true,
   },
   {
     id: "sunlight-stake",
@@ -319,6 +329,8 @@ export const CAMS = [
     type: "image",
     // HDRelay new-style endpoint; host b16 comes from the player JSON at
     // manage.hdrelay.com/player/<playerid> — re-fetch that if b16 ever breaks.
+    // Its Last-Modified is stamped with the request time: no staleness check.
+    freshness: "none",
     src: "https://b16.hdrelay.com/camera/635ff973ec60cc4e98eca6ec/snapshot",
   },
   {
@@ -337,7 +349,7 @@ export const CAMS = [
   },
   {
     id: "purgatory-stake",
-    verification: "untested",
+    verification: "validated",
     website: "https://www.purgatory.ski/",
     resort: "Purgatory",
     cam: "Snow Stake",
@@ -347,8 +359,7 @@ export const CAMS = [
     lon: -107.814,
     seasonal: true,
     type: "image",
-    // Whole assets.mcp.ski host is down for summer (HTTP 526) — fall re-check.
-    src: "https://assets.mcp.ski/purgatory/SnowStake.jpg",
+    src: "https://player.brownrice.com/snapshot/purgatorysnowstake1",
   },
   {
     id: "wolfcreek-base",
@@ -399,10 +410,12 @@ export function timecamUpstreamUrl(cam, now = new Date()) {
   return `${cam.baseUrl}/${hour}/${cam.camId}_${Y}_${M}_${D}_${H}_${m}_00_00.jpg`;
 }
 
-// Same-origin proxy URL for a proxied cam's image (image or timecam types).
-export function proxySrc(cam) {
-  const src = cam.type === "timecam" ? timecamUpstreamUrl(cam) : cam.src;
-  return `/api/cam?src=${src}`;
+// Same-origin proxy URL for a proxied cam (image or timecam types). The proxy
+// takes a cam id, not a URL, so it can only ever serve registered cams. `t` is
+// the minute bucket: every visitor shares one URL per minute, so the CDN cache
+// absorbs traffic. Never make it per-request.
+export function proxySrc(cam, bucket = Math.floor(Date.now() / 60000)) {
+  return `/api/cam?id=${encodeURIComponent(cam.id)}&t=${bucket}`;
 }
 
 // Upstream image URL for any proxied cam (image or timecam), or null.
@@ -412,36 +425,34 @@ export function upstreamUrl(cam) {
   return null;
 }
 
-// Proxy allowlist, derived — a new registry entry is automatically allowed.
-export function proxiedHostnames() {
-  const hosts = new Set();
-  for (const cam of CAMS) {
-    const url = upstreamUrl(cam);
-    if (url) hosts.add(new URL(url).hostname);
-  }
-  return [...hosts];
-}
-
-// Some cam hosts hotlink-protect; these Referers make us look like the resort's own page.
+// Breckenridge's timecam host has blocked hotlinking before; it gets the
+// resort's own site as Referer until Breck can be re-tested in season. If it
+// still needs it then, link out instead. Rule: if a host blocks us or asks us to
+// stop, remove the cam rather than routing around it.
 export const REFERER_MAP = {
-  "img.hdrelay.com": "https://www.hdrelay.com/",
   "terra.timecam.tv": "https://www.breckenridge.com/",
-  "cache.snow.com": "https://www.keystoneresort.com/",
 };
 
 export function upstreamHeaders(hostname) {
   const headers = {
-    "User-Agent":
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    "User-Agent": "SummitCams/1.0 (+https://www.summitcams.live)",
+    Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
   };
   if (REFERER_MAP[hostname]) headers["Referer"] = REFERER_MAP[hostname];
   return headers;
 }
 
-// May–October: a dark seasonal cam is off-season, not broken.
+// May–November: a dark seasonal cam is off-season, not broken. Most resorts
+// open mid-to-late November, so dark cams stay in the off-season list through
+// November instead of showing as "offline" from Nov 1. Server time is UTC.
 export function isSummer(date = new Date()) {
   const m = date.getMonth();
-  return m >= 4 && m <= 9;
+  return m >= 4 && m <= 10;
+}
+
+// Elevation string ("11,050'") to meters, for the snowfall model.
+export function elevationMeters(cam) {
+  const ft = parseInt(String(cam.elevation || "").replace(/[^0-9]/g, ""), 10);
+  return Number.isFinite(ft) && ft > 0 ? Math.round(ft * 0.3048) : null;
 }
