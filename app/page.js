@@ -446,10 +446,20 @@ function Clock() {
     const t = setInterval(() => setTime(new Date()), 15000);
     return () => clearInterval(t);
   }, []);
-  if (!time) return null;
+  // The server-rendered page has no time yet: hold the clock's width with an
+  // invisible placeholder, or the header can re-wrap after load and push the
+  // whole page down (a layout shift Lighthouse caught on 412px phones).
   return (
-    <span style={{ fontSize: 12, color: DIM_TEXT, fontFamily: mono, whiteSpace: "nowrap" }}>
-      {time.toLocaleTimeString("en-US", {
+    <span
+      style={{
+        fontSize: 12,
+        color: DIM_TEXT,
+        fontFamily: mono,
+        whiteSpace: "nowrap",
+        visibility: time ? "visible" : "hidden",
+      }}
+    >
+      {!time ? "12:00 AM MDT" : time.toLocaleTimeString("en-US", {
         hour: "numeric",
         minute: "2-digit",
         timeZone: "America/Denver",
