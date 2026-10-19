@@ -1,29 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { CAMS, WHITE_ROOM_DEFAULT, proxySrc } from "../cams";
+import { loadPrefs, useLiveData, useVisibleInterval } from "../lib/client";
 
 const mono = "var(--font-mono), monospace";
-const PREFS_KEY = "sc:prefs:v1";
-
-function loadFavs() {
-  try {
-    const p = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
-    return Array.isArray(p.favs) ? p.favs : [];
-  } catch {
-    return [];
-  }
-}
+const DIM_TEXT = "#7b8798";
 
 // Roster: favorites first, then the local-default nine, then any other live
-// cam — live cams only, capped at 9.
-function buildRoster(favs, statuses) {
+// cam — live, un-hidden cams only, capped at 9.
+function buildRoster({ favs, hidden }, statuses) {
   const byId = Object.fromEntries(CAMS.map((c) => [c.id, c]));
   const isLive = (id) => (statuses[id]?.state || "ok") === "ok";
   const seen = new Set();
   const roster = [];
   const push = (id) => {
-    if (roster.length >= 9 || seen.has(id) || !byId[id] || !isLive(id)) return;
+    if (roster.length >= 9 || seen.has(id) || !byId[id] || hidden.includes(id) || !isLive(id)) return;
     seen.add(id);
     roster.push(byId[id]);
   };
@@ -34,16 +26,17 @@ function buildRoster(favs, statuses) {
 }
 
 function Tile({ cam, snowIn }) {
-  const [src, setSrc] = useState(null);
+  const [bucket, setBucket] = useState(null);
+  const [failed, setFailed] = useState(false);
+  const isImage = cam.type === "image" || cam.type === "timecam";
 
   useEffect(() => {
-    if (cam.type === "youtube" || cam.type === "iframe") return;
-    const getSrc = () =>
-      proxySrc(cam) + "&t=" + Math.floor(Date.now() / 60000);
-    setSrc(getSrc());
-    const t = setInterval(() => setSrc(getSrc()), 60000);
-    return () => clearInterval(t);
-  }, [cam]);
+    if (isImage) setBucket(Math.floor(Date.now() / 60000));
+  }, [cam, isImage]);
+  // New frame every minute while the tab is visible; a failed tile recovers here.
+  useVisibleInterval(() => {
+    if (isImage) setBucket(Math.floor(Date.now() / 60000));
+  }, 60000);
 
   return (
     <div
@@ -58,7 +51,7 @@ function Tile({ cam, snowIn }) {
     >
       {cam.type === "youtube" ? (
         <iframe
-          src={`https://www.youtube.com/embed/${cam.videoId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0`}
+          src={`https://www.youtube-nocookie.com/embed/${cam.videoId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0`}
           style={{ width: "100%", height: "100%", border: "none" }}
           allow="autoplay; encrypted-media"
           loading="lazy"
@@ -73,13 +66,36 @@ function Tile({ cam, snowIn }) {
           title={cam.resort}
         />
       ) : (
-        src && (
+        bucket !== null && (
           <img
-            src={src}
+            src={proxySrc(cam, bucket)}
             alt={`${cam.resort} ${cam.cam}`}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              opacity: failed ? 0 : 1,
+            }}
+            onLoad={() => setFailed(false)}
+            onError={() => setFailed(true)}
           />
         )
+      )}
+      {failed && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 11,
+            color: "#94a3b8",
+            fontFamily: mono,
+          }}
+        >
+          feed unavailable — retrying
+        </div>
       )}
       <div
         style={{
@@ -95,19 +111,26 @@ function Tile({ cam, snowIn }) {
           pointerEvents: "none",
         }}
       >
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>
+        <a
+          href={cam.website}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: "#fff",
+            textDecoration: "none",
+            pointerEvents: "auto",
+          }}
+        >
           {cam.resort}
-        </span>
+        </a>
         {snowIn > 0 && (
           <span
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: "#7dd3fc",
-              fontFamily: mono,
-            }}
+            style={{ fontSize: 11, fontWeight: 700, color: "#7dd3fc", fontFamily: mono }}
+            title="Snowfall in the last 24h — model estimate"
           >
-            ❄ {snowIn}&quot;
+            ❄ {snowIn}&quot; 24h
           </span>
         )}
       </div>
@@ -116,22 +139,19 @@ function Tile({ cam, snowIn }) {
 }
 
 export default function WhiteRoom() {
-  const [roster, setRoster] = useState([]);
-  const [snow, setSnow] = useState({});
+  const { statuses, statusReady, snow } = useLiveData();
+  const [prefs, setPrefs] = useState(null);
 
   useEffect(() => {
-    const favs = loadFavs();
-    // Render immediately assuming everything is live; refine once status lands.
-    setRoster(buildRoster(favs, {}));
-    fetch("/api/status")
-      .then((r) => r.json())
-      .then((d) => setRoster(buildRoster(favs, d.statuses || {})))
-      .catch(() => {});
-    fetch("/api/snow")
-      .then((r) => r.json())
-      .then((d) => setSnow(d.snow || {}))
-      .catch(() => {});
+    setPrefs(loadPrefs());
   }, []);
+
+  // Rebuilt whenever statuses refresh (every 10 min), so recovered cams return.
+  const roster = useMemo(
+    () => (prefs && statusReady ? buildRoster(prefs, statuses) : []),
+    [prefs, statuses, statusReady]
+  );
+  const ready = prefs && statusReady;
 
   return (
     <div style={{ minHeight: "100vh", background: "#060a13", color: "#e2e8f0" }}>
@@ -142,31 +162,17 @@ export default function WhiteRoom() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          gap: 12,
         }}
       >
-        <a
-          href="/"
-          style={{
-            fontSize: 11,
-            color: "#475569",
-            fontFamily: mono,
-            textDecoration: "none",
-          }}
-        >
+        <a href="/" style={{ fontSize: 12, color: DIM_TEXT, fontFamily: mono, textDecoration: "none" }}>
           ← summitcams
         </a>
-        <span
-          style={{
-            fontSize: 13,
-            fontWeight: 800,
-            letterSpacing: "0.22em",
-            color: "#fff",
-          }}
-        >
+        <h1 style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.22em", color: "#fff", margin: 0 }}>
           THE WHITE<span style={{ color: "#6ee7b7" }}> ROOM</span>
-        </span>
-        <span style={{ fontSize: 9, color: "#334155", fontFamily: mono }}>
-          {roster.length} LIVE
+        </h1>
+        <span style={{ fontSize: 10, color: DIM_TEXT, fontFamily: mono }}>
+          {ready ? `${roster.length} LIVE` : ""}
         </span>
       </header>
 
@@ -187,14 +193,35 @@ export default function WhiteRoom() {
             style={{
               textAlign: "center",
               padding: "80px 0",
-              fontSize: 11,
-              color: "#334155",
+              fontSize: 12,
+              color: DIM_TEXT,
               fontFamily: mono,
             }}
           >
-            loading the wall…
+            {ready ? (
+              <>
+                No live cams right now. <a href="/" style={{ color: "#6ee7b7" }}>See the full list</a>
+              </>
+            ) : (
+              "loading the wall…"
+            )}
           </div>
         )}
+        <div
+          style={{
+            marginTop: 24,
+            textAlign: "center",
+            fontSize: 11,
+            color: DIM_TEXT,
+            fontFamily: mono,
+          }}
+        >
+          Snowfall: 24h totals from{" "}
+          <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" style={{ color: "#94a3b8" }}>
+            Open-Meteo.com
+          </a>{" "}
+          weather data · Not affiliated with any resort
+        </div>
       </main>
     </div>
   );

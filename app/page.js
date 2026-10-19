@@ -1,132 +1,160 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { CAMS, proxySrc } from "./cams";
-
-const PREFS_KEY = "sc:prefs:v1";
-
-function loadPrefs() {
-  try {
-    const raw = localStorage.getItem(PREFS_KEY);
-    if (!raw) return { favs: [], hidden: [] };
-    const p = JSON.parse(raw);
-    return {
-      favs: Array.isArray(p.favs) ? p.favs : [],
-      hidden: Array.isArray(p.hidden) ? p.hidden : [],
-    };
-  } catch {
-    return { favs: [], hidden: [] };
-  }
-}
+import { PREFS_KEY, loadPrefs, useLiveData, useVisibleInterval } from "./lib/client";
 
 const mono = "var(--font-mono), monospace";
+// Text colors on the dark background: status messages / secondary text.
+const STATUS_TEXT = "#94a3b8"; // ~7:1
+const DIM_TEXT = "#7b8798"; // ~5:1, passes 4.5:1 on every background here
+const UNDO_MS = 6000;
+
+const minuteBucket = () => Math.floor(Date.now() / 60000);
+
+const frame = (bg) => ({
+  position: "relative",
+  width: "100%",
+  aspectRatio: "16/9",
+  background: bg,
+  borderRadius: 10,
+  overflow: "hidden",
+});
 
 function CamFeed({ cam }) {
-  const [imgSrc, setImgSrc] = useState(null);
+  const wrapRef = useRef(null);
+  const [seen, setSeen] = useState(false);
+  const [bucket, setBucket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const isImage = cam.type === "image" || cam.type === "timecam";
 
+  // Mount the feed once its (always-visible) box gets near the screen. Observe
+  // the wrapper, never the <img>: the img is display:none until it loads, and a
+  // hidden element never intersects — that's the old lazy-loading deadlock.
   useEffect(() => {
-    if (cam.type === "youtube" || cam.type === "iframe") {
-      setLoading(false);
+    if (seen) return;
+    const el = wrapRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setSeen(true);
       return;
     }
-    const getSrc = () => {
-      const base = proxySrc(cam);
-      // Bucket the cache-buster to the minute so all visitors share one URL
-      // per minute and the CDN cache (s-maxage=30) actually absorbs traffic.
-      const bucket = Math.floor(Date.now() / 60000);
-      return base + (base.includes("?") ? "&" : "?") + "t=" + bucket;
-    };
-    setImgSrc(getSrc());
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setSeen(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "300px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [seen]);
+
+  useEffect(() => {
+    if (!seen || !isImage) return;
+    setBucket(minuteBucket());
     setLoading(true);
     setError(false);
+  }, [seen, cam, isImage]);
 
-    const interval = setInterval(() => {
-      setImgSrc(getSrc());
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [cam]);
+  // New frame every minute, only while the tab is visible.
+  useVisibleInterval(() => {
+    if (seen && isImage) setBucket(minuteBucket());
+  }, 60000);
 
   if (cam.type === "youtube") {
     return (
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          aspectRatio: "16/9",
-          background: "#000",
-          borderRadius: 10,
-          overflow: "hidden",
-        }}
-      >
-        <iframe
-          src={`https://www.youtube.com/embed/${cam.videoId}?autoplay=0&mute=1&controls=1&modestbranding=1&rel=0`}
-          style={{ width: "100%", height: "100%", border: "none" }}
-          allow="autoplay; encrypted-media"
-          allowFullScreen
-          loading="lazy"
-          title={`${cam.resort} ${cam.cam}`}
-        />
+      <div ref={wrapRef} style={frame("#000")}>
+        {seen && (
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${cam.videoId}?autoplay=0&mute=1&controls=1&modestbranding=1&rel=0`}
+            style={{ width: "100%", height: "100%", border: "none" }}
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+            loading="lazy"
+            title={`${cam.resort} ${cam.cam}`}
+          />
+        )}
       </div>
     );
   }
   if (cam.type === "iframe") {
+    // tapToPlay players stream video on their own; wait for a tap.
+    const show = seen && (!cam.tapToPlay || playing);
     return (
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          aspectRatio: "16/9",
-          background: "#000",
-          borderRadius: 10,
-          overflow: "hidden",
-        }}
-      >
-        <iframe
-          src={cam.src}
-          style={{ width: "100%", height: "100%", border: "none" }}
-          allow="autoplay; encrypted-media"
-          allowFullScreen
-          loading="lazy"
-          title={`${cam.resort} ${cam.cam}`}
-        />
+      <div ref={wrapRef} style={frame("#000")}>
+        {show ? (
+          <iframe
+            src={cam.src}
+            style={{ width: "100%", height: "100%", border: "none" }}
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+            loading="lazy"
+            title={`${cam.resort} ${cam.cam}`}
+          />
+        ) : (
+          cam.tapToPlay && (
+            <button
+              onClick={() => setPlaying(true)}
+              aria-label={`Play ${cam.resort} live video`}
+              style={{
+                width: "100%",
+                height: "100%",
+                border: "none",
+                cursor: "pointer",
+                background: "linear-gradient(135deg, #0c1220 0%, #111827 100%)",
+                color: STATUS_TEXT,
+                fontFamily: mono,
+                fontSize: 12,
+                letterSpacing: "0.08em",
+              }}
+            >
+              ▶ LIVE VIDEO — TAP TO PLAY
+            </button>
+          )
+        )}
       </div>
     );
   }
+  const imgSrc = bucket !== null ? proxySrc(cam, bucket) : null;
   return (
-    <div
-      style={{
-        position: "relative",
-        width: "100%",
-        aspectRatio: "16/9",
-        background: "#0a0f1a",
-        borderRadius: 10,
-        overflow: "hidden",
-      }}
-    >
+    <div ref={wrapRef} style={frame("#0a0f1a")}>
       {/* No loading="lazy" on this img: it's display:none until onLoad, and a
-          hidden img never intersects the viewport, so lazy would never fetch. */}
+          hidden img never intersects the viewport, so lazy would never fetch.
+          The wrapper's IntersectionObserver above does the lazy part. */}
       {imgSrc && (
-        <img
-          src={imgSrc}
-          alt={`${cam.resort} ${cam.cam}`}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            display: loading && !error ? "none" : "block",
-            opacity: error ? 0 : 1,
-          }}
-          onLoad={() => {
-            setLoading(false);
-            setError(false);
-          }}
-          onError={() => {
-            setLoading(false);
-            setError(true);
-          }}
-        />
+        <a
+          href={imgSrc}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Open the full ${cam.resort} frame`}
+          style={{ display: "block", width: "100%", height: "100%" }}
+        >
+          <img
+            src={imgSrc}
+            alt={`${cam.resort} ${cam.cam}`}
+            style={{
+              width: "100%",
+              height: "100%",
+              // contain, not cover: 4:3 frames would lose the bottom of the
+              // ruler and the timestamp bar to a 16:9 crop.
+              objectFit: "contain",
+              display: loading && !error ? "none" : "block",
+              opacity: error ? 0 : 1,
+            }}
+            onLoad={() => {
+              setLoading(false);
+              setError(false);
+            }}
+            onError={() => {
+              setLoading(false);
+              setError(true);
+            }}
+          />
+        </a>
       )}
       {loading && !error && (
         <div
@@ -136,6 +164,7 @@ function CamFeed({ cam }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            pointerEvents: "none",
           }}
         >
           <div className="spinner" />
@@ -147,22 +176,21 @@ function CamFeed({ cam }) {
             position: "absolute",
             inset: 0,
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: 6,
             background: "linear-gradient(135deg, #0c1220 0%, #111827 100%)",
+            pointerEvents: "none",
           }}
         >
           <span
             style={{
-              fontSize: 10,
-              color: "#334155",
+              fontSize: 11,
+              color: STATUS_TEXT,
               fontFamily: mono,
               letterSpacing: "0.05em",
             }}
           >
-            Feed unavailable — retrying in 60s
+            Feed unavailable — retrying every minute
           </span>
         </div>
       )}
@@ -170,19 +198,24 @@ function CamFeed({ cam }) {
   );
 }
 
-function CtrlButton({ onClick, title, active, children }) {
+function CtrlButton({ onClick, label, pressed, active, children }) {
   return (
     <button
       onClick={onClick}
-      title={title}
+      title={label}
+      aria-label={label}
+      aria-pressed={pressed}
+      className="ctrl"
       style={{
         background: "none",
         border: "none",
-        padding: "0 3px",
+        // Big hit area without growing the row.
+        padding: "8px 6px",
+        margin: "-8px 0",
         cursor: "pointer",
-        fontSize: 12,
+        fontSize: 15,
         lineHeight: 1,
-        color: active ? "#6ee7b7" : "#334155",
+        color: active ? "#6ee7b7" : DIM_TEXT,
         fontFamily: mono,
       }}
     >
@@ -191,8 +224,50 @@ function CtrlButton({ onClick, title, active, children }) {
   );
 }
 
-function CamCard({ cam, state, snowIn, prefs, actions, isFav }) {
+const fmtDenver = (iso) =>
+  new Date(iso).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/Denver",
+  });
+
+function darkMessage(status) {
+  if (status.state === "offseason") return "❄ off-season — back when the lifts spin";
+  if (status.reason === "stale" && status.frameAt)
+    return `⚠ camera stuck — last photo ${fmtDenver(status.frameAt)}`;
+  if (status.reason === "ended") return "⚠ stream ended — waiting on a new link";
+  return "⚠ feed offline right now";
+}
+
+function SnowBadges({ snowIn, fcstIn }) {
+  const fcst = Math.round(fcstIn || 0);
+  return (
+    <>
+      {snowIn > 0 && (
+        <span
+          style={{ fontSize: 11, color: "#7dd3fc", fontWeight: 700, fontFamily: mono }}
+          title="Snowfall in the last 24h — model estimate at the stake's elevation. Trust the stake."
+        >
+          ❄ {snowIn}&quot; 24h
+        </span>
+      )}
+      {fcst >= 1 && (
+        <span
+          style={{ fontSize: 11, color: "#c4b5fd", fontWeight: 700, fontFamily: mono }}
+          title="Forecast snowfall for the next 24h (model estimate)"
+        >
+          → {fcst}&quot; fcst
+        </span>
+      )}
+    </>
+  );
+}
+
+function CamCard({ cam, status, snowIn, fcstIn, prefs, actions, isFav, favCount }) {
   const favIndex = prefs.favs.indexOf(cam.id);
+  const state = status?.state || "ok";
   return (
     <div className="cam-entry" id={`cam-${cam.id}`}>
       {/* Label bar */}
@@ -200,12 +275,22 @@ function CamCard({ cam, state, snowIn, prefs, actions, isFav }) {
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "baseline",
+          alignItems: "center",
+          gap: 8,
           marginBottom: 6,
           padding: "0 2px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            flexWrap: "wrap",
+            columnGap: 8,
+            rowGap: 2,
+            minWidth: 0,
+          }}
+        >
           {cam.website ? (
             <a
               href={cam.website}
@@ -213,118 +298,90 @@ function CamCard({ cam, state, snowIn, prefs, actions, isFav }) {
               rel="noopener noreferrer"
               className="resort-link"
               title={`${cam.resort} official site`}
-              style={{
-                fontSize: 14,
-                fontWeight: 700,
-                color: "#e2e8f0",
-                textDecoration: "none",
-              }}
+              style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0", textDecoration: "none" }}
             >
               {cam.resort}
             </a>
           ) : (
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>
-              {cam.resort}
-            </span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>{cam.resort}</span>
           )}
-          <span style={{ fontSize: 11, color: "#475569", fontWeight: 500 }}>
-            {cam.cam}
-          </span>
-          {snowIn > 0 && (
+          <span style={{ fontSize: 11, color: DIM_TEXT, fontWeight: 500 }}>{cam.cam}</span>
+          {cam.stakeClear && (
             <span
-              style={{
-                fontSize: 10,
-                color: "#7dd3fc",
-                fontWeight: 700,
-                fontFamily: mono,
-              }}
-              title="Snowfall last 24h (model estimate — trust the stake)"
+              style={{ fontSize: 10, color: DIM_TEXT, fontFamily: mono }}
+              title="The stake is wiped clean daily at this time, so it shows snow since then"
             >
-              ❄ {snowIn}&quot; 24h
+              cleared {cam.stakeClear} daily
             </span>
           )}
+          <SnowBadges snowIn={snowIn} fcstIn={fcstIn} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
           {cam.type === "youtube" && state === "ok" && (
             <span
               style={{
-                fontSize: 8,
+                fontSize: 9,
                 fontWeight: 700,
-                color: "#dc2626",
+                color: "#ef4444",
                 letterSpacing: "0.1em",
                 fontFamily: mono,
                 display: "flex",
                 alignItems: "center",
                 gap: 3,
+                marginRight: 4,
               }}
             >
               <span
-                style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: "50%",
-                  background: "#dc2626",
-                  animation: "pulse 1.5s ease infinite",
-                }}
+                className="pulse"
+                style={{ width: 5, height: 5, borderRadius: "50%", background: "#ef4444" }}
               />
               LIVE
             </span>
           )}
           <span
-            style={{
-              fontSize: 10,
-              color: "#6ee7b7",
-              fontWeight: 600,
-              fontFamily: mono,
-              opacity: 0.8,
-            }}
+            style={{ fontSize: 11, color: "#6ee7b7", fontWeight: 600, fontFamily: mono, marginRight: 2 }}
           >
             {cam.elevation}
           </span>
-          {isFav && (
+          {isFav && favCount > 1 && (
             <>
-              <CtrlButton
-                title="Move up"
-                onClick={() => actions.moveFav(cam.id, -1)}
-              >
+              <CtrlButton label={`Move ${cam.resort} up`} onClick={() => actions.moveFav(cam.id, -1)}>
                 ↑
               </CtrlButton>
-              <CtrlButton
-                title="Move down"
-                onClick={() => actions.moveFav(cam.id, 1)}
-              >
+              <CtrlButton label={`Move ${cam.resort} down`} onClick={() => actions.moveFav(cam.id, 1)}>
                 ↓
               </CtrlButton>
             </>
           )}
           <CtrlButton
-            title={favIndex >= 0 ? "Unpin from favorites" : "Pin to top"}
+            label={favIndex >= 0 ? `Unpin ${cam.resort} from favorites` : `Pin ${cam.resort} to the top`}
+            pressed={favIndex >= 0}
             active={favIndex >= 0}
-            onClick={() => actions.toggleFav(cam.id)}
+            onClick={(e) => actions.toggleFav(cam.id, e)}
           >
             {favIndex >= 0 ? "★" : "☆"}
           </CtrlButton>
-          <CtrlButton title="Hide this cam" onClick={() => actions.toggleHide(cam.id)}>
+          <CtrlButton label={`Hide ${cam.resort}`} onClick={(e) => actions.toggleHide(cam.id, e)}>
             ✕
           </CtrlButton>
         </div>
       </div>
 
-      {/* Feed, or compact down-state */}
-      {state === "down" ? (
+      {/* Feed, or a compact box when the cam is dark */}
+      {state !== "ok" ? (
         <div
           style={{
             borderRadius: 10,
             border: "1px solid #1e293b",
             background: "linear-gradient(135deg, #0c1220 0%, #111827 100%)",
             padding: "14px 16px",
-            fontSize: 10,
-            color: "#475569",
+            fontSize: 11,
+            color: STATUS_TEXT,
             fontFamily: mono,
             letterSpacing: "0.05em",
           }}
         >
-          ⚠ feed offline — flagged, back soon
+          {darkMessage(status)}
         </div>
       ) : (
         <CamFeed cam={cam} />
@@ -333,31 +390,139 @@ function CamCard({ cam, state, snowIn, prefs, actions, isFav }) {
   );
 }
 
-export default function Home() {
+// Holds the spot of a card that just left (hidden / pinned / unpinned), so a
+// second tap lands on "Undo" instead of the next card's identical button.
+function UndoStub({ recent, onUndo }) {
+  const text = { hide: "Hidden", pin: "Pinned to top", unpin: "Removed from favorites" }[recent.kind];
+  return (
+    <div
+      data-undo-stub
+      style={{
+        height: recent.height,
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "0 16px",
+        borderRadius: 10,
+        border: "1px dashed #1e293b",
+        fontSize: 12,
+        color: STATUS_TEXT,
+        fontFamily: mono,
+        boxSizing: "border-box",
+      }}
+    >
+      <span>
+        {recent.resort} · {text}
+      </span>
+      <button
+        onClick={onUndo}
+        style={{
+          background: "none",
+          border: "1px solid #334155",
+          borderRadius: 999,
+          color: "#6ee7b7",
+          fontFamily: mono,
+          fontSize: 12,
+          padding: "6px 14px",
+          cursor: "pointer",
+        }}
+      >
+        Undo
+      </button>
+    </div>
+  );
+}
+
+function Clock() {
   const [time, setTime] = useState(null);
-  const [statuses, setStatuses] = useState({});
-  const [snow, setSnow] = useState({});
+  useEffect(() => {
+    setTime(new Date());
+    const t = setInterval(() => setTime(new Date()), 15000);
+    return () => clearInterval(t);
+  }, []);
+  if (!time) return null;
+  return (
+    <span style={{ fontSize: 11, color: DIM_TEXT, fontFamily: mono, whiteSpace: "nowrap" }}>
+      {time.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: "America/Denver",
+        timeZoneName: "short",
+      })}
+    </span>
+  );
+}
+
+// "Where did it snow": the top 5 by 24h snowfall, when anything got an inch.
+function SnowStrip({ cams, snow }) {
+  const top = cams
+    .filter((c) => (snow[c.id] || 0) >= 1)
+    .sort((a, b) => snow[b.id] - snow[a.id])
+    .slice(0, 5);
+  if (top.length === 0) return null;
+  return (
+    <section
+      aria-label="Most snow in the last 24 hours"
+      style={{
+        border: "1px solid #1e293b",
+        borderRadius: 10,
+        padding: "10px 12px",
+        background: "#0a0f1a",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 10,
+          color: DIM_TEXT,
+          fontFamily: mono,
+          letterSpacing: "0.14em",
+          marginBottom: 6,
+        }}
+      >
+        ❄ MOST SNOW · 24H MODEL ESTIMATE
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {top.map((c) => (
+          <button
+            key={c.id}
+            className="chip"
+            style={{ color: "#7dd3fc", fontSize: 11 }}
+            onClick={() => document.getElementById(`cam-${c.id}`)?.scrollIntoView({ block: "start" })}
+          >
+            {c.resort.toUpperCase()} {snow[c.id]}&quot;
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const sectionHeader = (label) => (
+  <h2
+    style={{
+      fontSize: 10,
+      fontWeight: 700,
+      color: DIM_TEXT,
+      letterSpacing: "0.18em",
+      fontFamily: mono,
+      margin: "8px 2px 0",
+    }}
+  >
+    {label}
+  </h2>
+);
+
+export default function Home() {
+  const { statuses, statusReady, snow, forecast } = useLiveData();
   const [prefs, setPrefs] = useState({ favs: [], hidden: [] });
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
-
-  useEffect(() => {
-    setTime(new Date());
-    const t = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
+  const [recent, setRecent] = useState(null); // the card that just left, for Undo
+  const anchorRef = useRef(null); // where the tapped card sat on screen
 
   useEffect(() => {
     setPrefs(loadPrefs());
     setPrefsLoaded(true);
-    fetch("/api/status")
-      .then((r) => r.json())
-      .then((d) => setStatuses(d.statuses || {}))
-      .catch(() => {});
-    fetch("/api/snow")
-      .then((r) => r.json())
-      .then((d) => setSnow(d.snow || {}))
-      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -367,89 +532,138 @@ export default function Home() {
     } catch {}
   }, [prefs, prefsLoaded]);
 
-  const actions = useMemo(
-    () => ({
-      toggleFav: (id) =>
-        setPrefs((p) => ({
-          ...p,
-          favs: p.favs.includes(id)
-            ? p.favs.filter((f) => f !== id)
-            : [...p.favs, id],
-        })),
-      moveFav: (id, dir) =>
-        setPrefs((p) => {
-          const favs = [...p.favs];
-          const i = favs.indexOf(id);
-          const j = i + dir;
-          if (i < 0 || j < 0 || j >= favs.length) return p;
-          [favs[i], favs[j]] = [favs[j], favs[i]];
-          return { ...p, favs };
-        }),
-      toggleHide: (id) =>
-        setPrefs((p) => ({
-          ...p,
-          hidden: p.hidden.includes(id)
-            ? p.hidden.filter((h) => h !== id)
-            : [...p.hidden, id],
-          favs: p.favs.filter((f) => f !== id),
-        })),
-    }),
-    []
-  );
+  useEffect(() => {
+    if (!recent) return;
+    const t = setTimeout(() => setRecent(null), UNDO_MS);
+    return () => clearTimeout(t);
+  }, [recent]);
 
-  const stateOf = (id) => statuses[id]?.state || "ok";
+  // Keep the undo stub exactly where the card was, even when pinning grows the
+  // favorites section above it (Safari has no scroll anchoring).
+  useLayoutEffect(() => {
+    if (!recent || anchorRef.current == null) return;
+    const stub = document.querySelector("[data-undo-stub]");
+    // behavior "instant": the page's smooth scrolling would animate this, and a
+    // quick second tap would land mid-scroll on whatever slid under the finger.
+    if (stub) window.scrollBy({ top: stub.getBoundingClientRect().top - anchorRef.current, behavior: "instant" });
+    anchorRef.current = null;
+  }, [recent]);
+
   const byId = useMemo(() => Object.fromEntries(CAMS.map((c) => [c.id, c])), []);
+  const stateOf = (id) => statuses[id]?.state || "ok";
 
   const favCams = prefs.favs.map((id) => byId[id]).filter(Boolean);
   const hiddenCams = CAMS.filter((c) => prefs.hidden.includes(c.id));
-  const mainCams = CAMS.filter(
-    (c) => !prefs.hidden.includes(c.id) && !prefs.favs.includes(c.id)
-  );
+  const mainCams = CAMS.filter((c) => !prefs.hidden.includes(c.id) && !prefs.favs.includes(c.id));
   const activeCams = mainCams.filter((c) => stateOf(c.id) !== "offseason");
   const offseasonCams = mainCams.filter((c) => stateOf(c.id) === "offseason");
 
+  // Regions in registry order. A region whose only cam was just pinned or hidden
+  // stays (empty) while its undo stub shows, so the layout doesn't jump.
+  const activeIds = new Set(activeCams.map((c) => c.id));
   const regions = [];
-  for (const cam of activeCams) {
+  for (const cam of CAMS) {
+    const keepForStub = recent && cam.id === recent.id && recent.section === cam.region;
+    if (!activeIds.has(cam.id) && !keepForStub) continue;
     let g = regions.find((r) => r.name === cam.region);
     if (!g) {
       g = { name: cam.region, cams: [] };
       regions.push(g);
     }
-    g.cams.push(cam);
+    if (activeIds.has(cam.id)) g.cams.push(cam);
   }
 
-  const timeStr = time
-    ? time.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        timeZone: "America/Denver",
-        timeZoneName: "short",
-      })
-    : "";
+  // Section a card is listed in, and its index there (for the undo stub).
+  const placeOf = (id) => {
+    const fi = favCams.findIndex((c) => c.id === id);
+    if (fi >= 0) return { section: "fav", index: fi };
+    for (const r of regions) {
+      const i = r.cams.findIndex((c) => c.id === id);
+      if (i >= 0) return { section: r.name, index: i };
+    }
+    return null;
+  };
 
-  const sectionHeader = (label) => (
-    <div
-      style={{
-        fontSize: 9,
-        fontWeight: 700,
-        color: "#475569",
-        letterSpacing: "0.18em",
-        fontFamily: mono,
-        margin: "8px 2px 0",
-      }}
-    >
-      {label}
-    </div>
-  );
+  const act = (kind, id, e) => {
+    const place = placeOf(id);
+    const card = document.getElementById(`cam-${id}`);
+    const wasFavIndex = prefs.favs.indexOf(id);
+    const wasHidden = prefs.hidden.includes(id);
+    setPrefs((p) => {
+      if (kind === "hide")
+        return { favs: p.favs.filter((f) => f !== id), hidden: [...p.hidden.filter((h) => h !== id), id] };
+      if (kind === "pin") return { ...p, favs: [...p.favs, id] };
+      return { ...p, favs: p.favs.filter((f) => f !== id) };
+    });
+    if (place && card && e) {
+      anchorRef.current = card.getBoundingClientRect().top;
+      setRecent({
+        kind,
+        id,
+        resort: byId[id].resort,
+        height: card.offsetHeight,
+        wasFavIndex,
+        wasHidden,
+        ...place,
+      });
+    }
+  };
+
+  const undo = () => {
+    if (!recent) return;
+    const { id, wasFavIndex, wasHidden } = recent;
+    setPrefs((p) => {
+      const favs = p.favs.filter((f) => f !== id);
+      if (wasFavIndex >= 0) favs.splice(Math.min(wasFavIndex, favs.length), 0, id);
+      const hidden = p.hidden.filter((h) => h !== id);
+      if (wasHidden) hidden.push(id);
+      return { favs, hidden };
+    });
+    setRecent(null);
+  };
+
+  const actions = {
+    toggleFav: (id, e) => act(prefs.favs.includes(id) ? "unpin" : "pin", id, e),
+    toggleHide: (id, e) => act("hide", id, e),
+    unhide: (id) => setPrefs((p) => ({ ...p, hidden: p.hidden.filter((h) => h !== id) })),
+    moveFav: (id, dir) =>
+      setPrefs((p) => {
+        const favs = [...p.favs];
+        const i = favs.indexOf(id);
+        const j = i + dir;
+        if (i < 0 || j < 0 || j >= favs.length) return p;
+        [favs[i], favs[j]] = [favs[j], favs[i]];
+        return { ...p, favs };
+      }),
+  };
+
+  const renderList = (cams, section, isFav) => {
+    const items = cams.map((cam) => (
+      <CamCard
+        key={cam.id}
+        cam={cam}
+        status={statuses[cam.id]}
+        snowIn={snow[cam.id]}
+        fcstIn={forecast[cam.id]}
+        prefs={prefs}
+        actions={actions}
+        isFav={isFav}
+        favCount={favCams.length}
+      />
+    ));
+    if (recent && recent.section === section) {
+      const at = Math.min(recent.index, items.length);
+      items.splice(at, 0, <UndoStub key={`undo-${recent.id}`} recent={recent} onUndo={undo} />);
+    }
+    return items;
+  };
+
+  const stripCams = CAMS.filter((c) => !prefs.hidden.includes(c.id) && stateOf(c.id) !== "offseason");
+  const showFavSection = favCams.length > 0 || recent?.section === "fav";
+  const regionId = (name) => `region-${name.replace(/\s+/g, "-")}`;
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#060a13",
-        color: "#e2e8f0",
-      }}
-    >
+    <div style={{ minHeight: "100vh", background: "#060a13", color: "#e2e8f0" }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
@@ -464,17 +678,27 @@ export default function Home() {
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
-        .cam-entry { animation: fadeUp 0.5s ease both; }
+        .pulse { animation: pulse 1.5s ease infinite; }
+        .brand-dot { animation: pulse 2.5s ease-in-out infinite; }
+        .cam-entry { animation: fadeUp 0.5s ease both; scroll-margin-top: 52px; }
         .chip {
           font-family: var(--font-mono), monospace;
-          font-size: 9px; letter-spacing: 0.08em;
-          color: #64748b; background: #0c1220;
+          font-size: 10px; letter-spacing: 0.08em;
+          color: ${DIM_TEXT}; background: #0c1220;
           border: 1px solid #1e293b; border-radius: 999px;
-          padding: 4px 10px; cursor: pointer; white-space: nowrap;
+          padding: 6px 11px; cursor: pointer; white-space: nowrap;
         }
         .chip:hover { color: #6ee7b7; border-color: #334155; }
+        .navrow { scrollbar-width: none; }
+        .navrow::-webkit-scrollbar { display: none; }
+        .ctrl:hover { color: #6ee7b7 !important; }
         .resort-link:hover { color: #6ee7b7 !important; text-decoration: underline !important; }
+        button:focus-visible, a:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 2px; border-radius: 4px; }
         html { scroll-behavior: smooth; }
+        @media (prefers-reduced-motion: reduce) {
+          html { scroll-behavior: auto; }
+          .cam-entry, .pulse, .brand-dot, .spinner { animation: none; }
+        }
       `}</style>
 
       {/* Header */}
@@ -484,45 +708,36 @@ export default function Home() {
           maxWidth: 900,
           margin: "0 auto",
           display: "flex",
+          flexWrap: "wrap",
+          rowGap: 8,
+          columnGap: 12,
           justifyContent: "space-between",
           alignItems: "center",
+          boxSizing: "border-box",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
           <div
+            className="brand-dot"
             style={{
               width: 7,
               height: 7,
               borderRadius: "50%",
               background: "#6ee7b7",
-              animation: "pulse 2.5s ease-in-out infinite",
               boxShadow: "0 0 6px rgba(110,231,183,0.4)",
             }}
           />
-          <span
-            style={{
-              fontSize: 16,
-              fontWeight: 800,
-              letterSpacing: "0.02em",
-              color: "#fff",
-            }}
-          >
+          <h1 style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.02em", color: "#fff", margin: 0 }}>
             SUMMIT<span style={{ color: "#6ee7b7" }}>CAMS</span>
-          </span>
-          <span style={{ fontSize: 9, color: "#1e293b", fontFamily: mono }}>
-            .live
-          </span>
+          </h1>
+          <span style={{ fontSize: 10, color: DIM_TEXT, fontFamily: mono }}>.live</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {timeStr && (
-            <span style={{ fontSize: 11, color: "#475569", fontFamily: mono }}>
-              {timeStr}
-            </span>
-          )}
+          <Clock />
           <a
             href="/whiteroom"
             style={{
-              fontSize: 9,
+              fontSize: 10,
               fontWeight: 700,
               letterSpacing: "0.14em",
               fontFamily: mono,
@@ -530,7 +745,7 @@ export default function Home() {
               background: "rgba(110,231,183,0.08)",
               border: "1px solid rgba(110,231,183,0.35)",
               borderRadius: 999,
-              padding: "5px 11px",
+              padding: "7px 12px",
               textDecoration: "none",
               whiteSpace: "nowrap",
             }}
@@ -540,202 +755,171 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Region quick-nav */}
-      {regions.length > 1 && (
+      {/* Region quick-nav — sticks to the top while scrolling */}
+      {statusReady && regions.length > 1 && (
         <nav
+          aria-label="Regions"
           style={{
-            maxWidth: 900,
-            margin: "0 auto",
-            padding: "0 20px 4px",
-            display: "flex",
-            gap: 6,
-            overflowX: "auto",
+            position: "sticky",
+            top: 0,
+            zIndex: 5,
+            background: "rgba(6,10,19,0.94)",
+            backdropFilter: "blur(6px)",
           }}
         >
-          {regions.map((r) => (
-            <button
-              key={r.name}
-              className="chip"
-              onClick={() =>
-                document
-                  .getElementById(`region-${r.name.replace(/\s+/g, "-")}`)
-                  ?.scrollIntoView({ block: "start" })
-              }
-            >
-              {r.name.toUpperCase()}
-            </button>
-          ))}
+          <div
+            className="navrow"
+            style={{
+              maxWidth: 900,
+              margin: "0 auto",
+              padding: "8px 20px",
+              display: "flex",
+              gap: 6,
+              overflowX: "auto",
+              boxSizing: "border-box",
+            }}
+          >
+            {regions.map((r) => (
+              <button
+                key={r.name}
+                className="chip"
+                onClick={() => document.getElementById(regionId(r.name))?.scrollIntoView({ block: "start" })}
+              >
+                {r.name.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </nav>
       )}
 
       {/* Cam list */}
-      <main style={{ maxWidth: 900, margin: "0 auto", padding: "0 20px 60px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {/* Favorites */}
-          {favCams.length > 0 && (
-            <>
-              {sectionHeader("★ FAVORITES")}
-              {favCams.map((cam) => (
-                <CamCard
-                  key={cam.id}
-                  cam={cam}
-                  state={stateOf(cam.id)}
-                  snowIn={snow[cam.id]}
-                  prefs={prefs}
-                  actions={actions}
-                  isFav
-                />
-              ))}
-            </>
-          )}
+      <main style={{ maxWidth: 900, margin: "0 auto", padding: "8px 20px 60px", boxSizing: "border-box" }}>
+        {!statusReady ? (
+          <div style={{ display: "flex", justifyContent: "center", padding: "80px 0" }}>
+            <div className="spinner" />
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <SnowStrip cams={stripCams} snow={snow} />
 
-          {/* Regions */}
-          {regions.map((r) => (
-            <div
-              key={r.name}
-              id={`region-${r.name.replace(/\s+/g, "-")}`}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 20,
-                scrollMarginTop: 16,
-              }}
-            >
-              {regions.length > 1 && sectionHeader(r.name.toUpperCase())}
-              {r.cams.map((cam) => (
-                <CamCard
-                  key={cam.id}
-                  cam={cam}
-                  state={stateOf(cam.id)}
-                  snowIn={snow[cam.id]}
-                  prefs={prefs}
-                  actions={actions}
-                  isFav={false}
-                />
-              ))}
-            </div>
-          ))}
+            {/* Favorites */}
+            {showFavSection && (
+              <>
+                {sectionHeader("★ FAVORITES")}
+                {renderList(favCams, "fav", true)}
+              </>
+            )}
 
-          {/* Off-season */}
-          {offseasonCams.length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              {sectionHeader("❄ OFF-SEASON — BACK WHEN THE LIFTS SPIN")}
+            {/* Regions */}
+            {regions.map((r) => (
               <div
-                style={{
-                  marginTop: 10,
-                  border: "1px solid #131c2e",
-                  borderRadius: 10,
-                  overflow: "hidden",
-                }}
+                key={r.name}
+                id={regionId(r.name)}
+                style={{ display: "flex", flexDirection: "column", gap: 20, scrollMarginTop: 52 }}
               >
-                {offseasonCams.map((cam, i) => (
-                  <div
-                    key={cam.id}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "10px 14px",
-                      borderTop: i > 0 ? "1px solid #0c1220" : "none",
-                    }}
-                  >
-                    <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                      <a
-                        href={cam.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="resort-link"
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#64748b",
-                          textDecoration: "none",
-                        }}
-                      >
-                        {cam.resort}
-                      </a>
-                      <span style={{ fontSize: 10, color: "#334155" }}>
-                        {cam.cam}
-                      </span>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: 9,
-                        color: "#334155",
-                        fontFamily: mono,
-                      }}
-                    >
-                      {cam.elevation}
-                    </span>
-                  </div>
-                ))}
+                {regions.length > 1 && sectionHeader(r.name.toUpperCase())}
+                {renderList(r.cams, r.name, false)}
               </div>
-            </div>
-          )}
+            ))}
 
-          {/* Hidden */}
-          {hiddenCams.length > 0 && (
-            <div style={{ textAlign: "center" }}>
-              <button
-                className="chip"
-                onClick={() => setShowHidden((s) => !s)}
-              >
-                {showHidden
-                  ? "COLLAPSE HIDDEN"
-                  : `${hiddenCams.length} HIDDEN CAM${hiddenCams.length > 1 ? "S" : ""} — SHOW`}
-              </button>
-              {showHidden && (
-                <div style={{ marginTop: 10 }}>
-                  {hiddenCams.map((cam) => (
+            {/* Off-season */}
+            {offseasonCams.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                {sectionHeader("❄ OFF-SEASON — BACK WHEN THE LIFTS SPIN")}
+                <div
+                  style={{
+                    marginTop: 10,
+                    border: "1px solid #131c2e",
+                    borderRadius: 10,
+                    overflow: "hidden",
+                  }}
+                >
+                  {offseasonCams.map((cam, i) => (
                     <div
                       key={cam.id}
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        padding: "8px 14px",
-                        fontSize: 11,
-                        color: "#475569",
+                        padding: "10px 14px",
+                        borderTop: i > 0 ? "1px solid #0c1220" : "none",
                       }}
                     >
-                      <span>
-                        {cam.resort} — {cam.cam}
-                      </span>
-                      <CtrlButton
-                        title="Unhide"
-                        onClick={() => actions.toggleHide(cam.id)}
-                      >
-                        unhide
-                      </CtrlButton>
+                      <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                        <a
+                          href={cam.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="resort-link"
+                          style={{ fontSize: 13, fontWeight: 600, color: STATUS_TEXT, textDecoration: "none" }}
+                        >
+                          {cam.resort}
+                        </a>
+                        <span style={{ fontSize: 11, color: DIM_TEXT }}>{cam.cam}</span>
+                      </div>
+                      <span style={{ fontSize: 10, color: DIM_TEXT, fontFamily: mono }}>{cam.elevation}</span>
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+
+            {/* Hidden */}
+            {hiddenCams.length > 0 && (
+              <div style={{ textAlign: "center" }}>
+                <button className="chip" onClick={() => setShowHidden((s) => !s)}>
+                  {showHidden
+                    ? "COLLAPSE HIDDEN"
+                    : `${hiddenCams.length} HIDDEN CAM${hiddenCams.length > 1 ? "S" : ""} — SHOW`}
+                </button>
+                {showHidden && (
+                  <div style={{ marginTop: 10 }}>
+                    {hiddenCams.map((cam) => (
+                      <div
+                        key={cam.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "8px 14px",
+                          fontSize: 12,
+                          color: STATUS_TEXT,
+                        }}
+                      >
+                        <span>
+                          {cam.resort} — {cam.cam}
+                        </span>
+                        <CtrlButton label={`Unhide ${cam.resort}`} onClick={() => actions.unhide(cam.id)}>
+                          unhide
+                        </CtrlButton>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Footer */}
         <footer
           style={{
             marginTop: 48,
             paddingTop: 20,
-            borderTop: "1px solid rgba(255,255,255,0.03)",
+            borderTop: "1px solid rgba(255,255,255,0.05)",
             textAlign: "center",
           }}
         >
-          <div
-            style={{
-              fontSize: 9,
-              color: "#1e293b",
-              fontFamily: mono,
-              lineHeight: 2,
-            }}
-          >
+          <div style={{ fontSize: 11, color: DIM_TEXT, fontFamily: mono, lineHeight: 2 }}>
             summitcams.live — Colorado snow stake webcam aggregator
             <br />
-            Not affiliated with any resort · Camera feeds from public resort
-            webcam pages · Snowfall estimates from Open-Meteo
+            Not affiliated with any resort · Cameras belong to the resorts — tap a resort name for its site
+            <br />
+            Snowfall: 24h totals and forecasts from{" "}
+            <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" style={{ color: STATUS_TEXT }}>
+              Open-Meteo.com
+            </a>{" "}
+            weather data
           </div>
         </footer>
       </main>
