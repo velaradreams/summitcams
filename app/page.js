@@ -771,42 +771,43 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Region quick-nav — sticks to the top while scrolling */}
-      {statusReady && regions.length > 1 && (
-        <nav
-          aria-label="Regions"
+      {/* Region quick-nav — sticks to the top while scrolling. Always rendered
+          at full height (chips fill in once status lands), so the cam list
+          below never gets pushed down after the first paint. */}
+      <nav
+        aria-label="Regions"
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 5,
+          background: "rgba(6,10,19,0.94)",
+          backdropFilter: "blur(6px)",
+        }}
+      >
+        <div
+          className="navrow"
           style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 5,
-            background: "rgba(6,10,19,0.94)",
-            backdropFilter: "blur(6px)",
+            maxWidth: 900,
+            margin: "0 auto",
+            padding: "8px 20px",
+            display: "flex",
+            gap: 6,
+            overflowX: "auto",
+            boxSizing: "border-box",
+            minHeight: 46,
           }}
         >
-          <div
-            className="navrow"
-            style={{
-              maxWidth: 900,
-              margin: "0 auto",
-              padding: "8px 20px",
-              display: "flex",
-              gap: 6,
-              overflowX: "auto",
-              boxSizing: "border-box",
-            }}
-          >
-            {regions.map((r) => (
-              <button
-                key={r.name}
-                className="chip"
-                onClick={() => document.getElementById(regionId(r.name))?.scrollIntoView({ block: "start" })}
-              >
-                {r.name.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </nav>
-      )}
+          {statusReady && regions.length > 1 && regions.map((r) => (
+            <button
+              key={r.name}
+              className="chip"
+              onClick={() => document.getElementById(regionId(r.name))?.scrollIntoView({ block: "start" })}
+            >
+              {r.name.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </nav>
 
       {/* Cam list */}
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "8px 20px 60px", boxSizing: "border-box" }}>
