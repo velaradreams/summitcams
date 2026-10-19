@@ -920,6 +920,12 @@ export default function Home() {
               Open-Meteo.com
             </a>{" "}
             weather data
+            <br />
+            Resort or camera owner? Email{" "}
+            <a href="mailto:aj@summitcams.live" style={{ color: STATUS_TEXT }}>
+              aj@summitcams.live
+            </a>{" "}
+            to change or remove a feed.
           </div>
         </footer>
       </main>
