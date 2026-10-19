@@ -12,16 +12,16 @@ const UNDO_MS = 6000;
 
 const minuteBucket = () => Math.floor(Date.now() / 60000);
 
-const frame = (bg) => ({
+const frame = (bg, aspect = "16/9") => ({
   position: "relative",
   width: "100%",
-  aspectRatio: "16/9",
+  aspectRatio: aspect,
   background: bg,
   borderRadius: 10,
   overflow: "hidden",
 });
 
-function CamFeed({ cam }) {
+function CamFeed({ cam, priority }) {
   const wrapRef = useRef(null);
   const [seen, setSeen] = useState(false);
   const [bucket, setBucket] = useState(null);
@@ -99,7 +99,7 @@ function CamFeed({ cam }) {
           cam.tapToPlay && (
             <button
               onClick={() => setPlaying(true)}
-              aria-label={`Play ${cam.resort} live video`}
+              title={`Play the ${cam.resort} live video`}
               style={{
                 width: "100%",
                 height: "100%",
@@ -121,13 +121,13 @@ function CamFeed({ cam }) {
   }
   const imgSrc = bucket !== null ? proxySrc(cam, bucket) : null;
   return (
-    <div ref={wrapRef} style={frame("#0a0f1a")}>
+    <div ref={wrapRef} style={frame("#0a0f1a", cam.aspect)}>
       {/* No loading="lazy" on this img: it's display:none until onLoad, and a
           hidden img never intersects the viewport, so lazy would never fetch.
           The wrapper's IntersectionObserver above does the lazy part. */}
       {imgSrc && (
         <a
-          href={imgSrc}
+          href={`${imgSrc}&full=1`}
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Open the full ${cam.resort} frame`}
@@ -136,6 +136,7 @@ function CamFeed({ cam }) {
           <img
             src={imgSrc}
             alt={`${cam.resort} ${cam.cam}`}
+            fetchPriority={priority ? "high" : "auto"}
             style={{
               width: "100%",
               height: "100%",
@@ -184,7 +185,7 @@ function CamFeed({ cam }) {
         >
           <span
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: STATUS_TEXT,
               fontFamily: mono,
               letterSpacing: "0.05em",
@@ -209,9 +210,14 @@ function CtrlButton({ onClick, label, pressed, active, children }) {
       style={{
         background: "none",
         border: "none",
-        // Big hit area without growing the row.
-        padding: "8px 6px",
-        margin: "-8px 0",
+        // 30px tap target (WCAG minimum is 24) without growing the row.
+        minWidth: 30,
+        minHeight: 30,
+        padding: "0 6px",
+        margin: "-7px 0",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
         cursor: "pointer",
         fontSize: 15,
         lineHeight: 1,
@@ -247,7 +253,7 @@ function SnowBadges({ snowIn, fcstIn }) {
     <>
       {snowIn > 0 && (
         <span
-          style={{ fontSize: 11, color: "#7dd3fc", fontWeight: 700, fontFamily: mono }}
+          style={{ fontSize: 12, color: "#7dd3fc", fontWeight: 700, fontFamily: mono }}
           title="Snowfall in the last 24h — model estimate at the stake's elevation. Trust the stake."
         >
           ❄ {snowIn}&quot; 24h
@@ -255,7 +261,7 @@ function SnowBadges({ snowIn, fcstIn }) {
       )}
       {fcst >= 1 && (
         <span
-          style={{ fontSize: 11, color: "#c4b5fd", fontWeight: 700, fontFamily: mono }}
+          style={{ fontSize: 12, color: "#c4b5fd", fontWeight: 700, fontFamily: mono }}
           title="Forecast snowfall for the next 24h (model estimate)"
         >
           → {fcst}&quot; fcst
@@ -265,7 +271,7 @@ function SnowBadges({ snowIn, fcstIn }) {
   );
 }
 
-function CamCard({ cam, status, snowIn, fcstIn, prefs, actions, isFav, favCount }) {
+function CamCard({ cam, status, snowIn, fcstIn, prefs, actions, isFav, favCount, priority }) {
   const favIndex = prefs.favs.indexOf(cam.id);
   const state = status?.state || "ok";
   return (
@@ -305,10 +311,10 @@ function CamCard({ cam, status, snowIn, fcstIn, prefs, actions, isFav, favCount 
           ) : (
             <span style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>{cam.resort}</span>
           )}
-          <span style={{ fontSize: 11, color: DIM_TEXT, fontWeight: 500 }}>{cam.cam}</span>
+          <span style={{ fontSize: 12, color: DIM_TEXT, fontWeight: 500 }}>{cam.cam}</span>
           {cam.stakeClear && (
             <span
-              style={{ fontSize: 10, color: DIM_TEXT, fontFamily: mono }}
+              style={{ fontSize: 12, color: DIM_TEXT, fontFamily: mono }}
               title="The stake is wiped clean daily at this time, so it shows snow since then"
             >
               cleared {cam.stakeClear} daily
@@ -320,7 +326,7 @@ function CamCard({ cam, status, snowIn, fcstIn, prefs, actions, isFav, favCount 
           {cam.type === "youtube" && state === "ok" && (
             <span
               style={{
-                fontSize: 9,
+                fontSize: 10,
                 fontWeight: 700,
                 color: "#ef4444",
                 letterSpacing: "0.1em",
@@ -339,7 +345,7 @@ function CamCard({ cam, status, snowIn, fcstIn, prefs, actions, isFav, favCount 
             </span>
           )}
           <span
-            style={{ fontSize: 11, color: "#6ee7b7", fontWeight: 600, fontFamily: mono, marginRight: 2 }}
+            style={{ fontSize: 12, color: "#6ee7b7", fontWeight: 600, fontFamily: mono, marginRight: 2 }}
           >
             {cam.elevation}
           </span>
@@ -375,7 +381,7 @@ function CamCard({ cam, status, snowIn, fcstIn, prefs, actions, isFav, favCount 
             border: "1px solid #1e293b",
             background: "linear-gradient(135deg, #0c1220 0%, #111827 100%)",
             padding: "14px 16px",
-            fontSize: 11,
+            fontSize: 12,
             color: STATUS_TEXT,
             fontFamily: mono,
             letterSpacing: "0.05em",
@@ -384,7 +390,7 @@ function CamCard({ cam, status, snowIn, fcstIn, prefs, actions, isFav, favCount 
           {darkMessage(status)}
         </div>
       ) : (
-        <CamFeed cam={cam} />
+        <CamFeed cam={cam} priority={priority} />
       )}
     </div>
   );
@@ -442,7 +448,7 @@ function Clock() {
   }, []);
   if (!time) return null;
   return (
-    <span style={{ fontSize: 11, color: DIM_TEXT, fontFamily: mono, whiteSpace: "nowrap" }}>
+    <span style={{ fontSize: 12, color: DIM_TEXT, fontFamily: mono, whiteSpace: "nowrap" }}>
       {time.toLocaleTimeString("en-US", {
         hour: "numeric",
         minute: "2-digit",
@@ -472,7 +478,7 @@ function SnowStrip({ cams, snow }) {
     >
       <div
         style={{
-          fontSize: 10,
+          fontSize: 12,
           color: DIM_TEXT,
           fontFamily: mono,
           letterSpacing: "0.14em",
@@ -486,7 +492,7 @@ function SnowStrip({ cams, snow }) {
           <button
             key={c.id}
             className="chip"
-            style={{ color: "#7dd3fc", fontSize: 11 }}
+            style={{ color: "#7dd3fc", fontSize: 12 }}
             onClick={() => document.getElementById(`cam-${c.id}`)?.scrollIntoView({ block: "start" })}
           >
             {c.resort.toUpperCase()} {snow[c.id]}&quot;
@@ -500,10 +506,10 @@ function SnowStrip({ cams, snow }) {
 const sectionHeader = (label) => (
   <h2
     style={{
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: 700,
       color: DIM_TEXT,
-      letterSpacing: "0.18em",
+      letterSpacing: "0.16em",
       fontFamily: mono,
       margin: "8px 2px 0",
     }}
@@ -637,6 +643,15 @@ export default function Home() {
       }),
   };
 
+  // The first two image cams on screen load at high priority (the LCP image).
+  const priorityIds = new Set(
+    favCams
+      .concat(regions.flatMap((r) => r.cams))
+      .filter((c) => (c.type === "image" || c.type === "timecam") && stateOf(c.id) === "ok")
+      .slice(0, 2)
+      .map((c) => c.id)
+  );
+
   const renderList = (cams, section, isFav) => {
     const items = cams.map((cam) => (
       <CamCard
@@ -649,6 +664,7 @@ export default function Home() {
         actions={actions}
         isFav={isFav}
         favCount={favCams.length}
+        priority={priorityIds.has(cam.id)}
       />
     ));
     if (recent && recent.section === section) {
@@ -683,7 +699,7 @@ export default function Home() {
         .cam-entry { animation: fadeUp 0.5s ease both; scroll-margin-top: 52px; }
         .chip {
           font-family: var(--font-mono), monospace;
-          font-size: 10px; letter-spacing: 0.08em;
+          font-size: 12px; letter-spacing: 0.06em;
           color: ${DIM_TEXT}; background: #0c1220;
           border: 1px solid #1e293b; border-radius: 999px;
           padding: 6px 11px; cursor: pointer; white-space: nowrap;
@@ -737,7 +753,7 @@ export default function Home() {
           <a
             href="/whiteroom"
             style={{
-              fontSize: 10,
+              fontSize: 11,
               fontWeight: 700,
               letterSpacing: "0.14em",
               fontFamily: mono,
@@ -855,9 +871,9 @@ export default function Home() {
                         >
                           {cam.resort}
                         </a>
-                        <span style={{ fontSize: 11, color: DIM_TEXT }}>{cam.cam}</span>
+                        <span style={{ fontSize: 12, color: DIM_TEXT }}>{cam.cam}</span>
                       </div>
-                      <span style={{ fontSize: 10, color: DIM_TEXT, fontFamily: mono }}>{cam.elevation}</span>
+                      <span style={{ fontSize: 12, color: DIM_TEXT, fontFamily: mono }}>{cam.elevation}</span>
                     </div>
                   ))}
                 </div>
@@ -910,7 +926,7 @@ export default function Home() {
             textAlign: "center",
           }}
         >
-          <div style={{ fontSize: 11, color: DIM_TEXT, fontFamily: mono, lineHeight: 2 }}>
+          <div style={{ fontSize: 12, color: DIM_TEXT, fontFamily: mono, lineHeight: 1.9 }}>
             summitcams.live — Colorado snow stake webcam aggregator
             <br />
             Not affiliated with any resort · Cameras belong to the resorts — tap a resort name for its site

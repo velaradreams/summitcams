@@ -1,6 +1,12 @@
+import sharp from "sharp";
 import { CAMS, upstreamUrl, upstreamHeaders } from "../../cams";
 
 const MAX_BYTES = 5 * 1024 * 1024;
+// Card-size frames: 1920px / 250 KB sources get scaled to 1280px wide. That's
+// sharp on a 3x phone and halves the biggest frames. ?full=1 serves the original
+// (the card's tap-to-enlarge link).
+const CARD_WIDTH = 1280;
+const RECOMPRESS_OVER = 150 * 1024;
 
 // Failures go out as 404s with a short shared cache: Vercel never caches a 502,
 // so a dead upstream would otherwise be re-fetched on every visitor's request.
@@ -45,13 +51,29 @@ export async function GET(request) {
       upstream.body?.cancel();
       return fail(502, "Too large");
     }
-    const imageBuffer = await upstream.arrayBuffer();
-    if (imageBuffer.byteLength > MAX_BYTES) return fail(502, "Too large");
+    let body = Buffer.from(await upstream.arrayBuffer());
+    if (body.length > MAX_BYTES) return fail(502, "Too large");
 
-    return new Response(imageBuffer, {
+    let type = contentType;
+    if (searchParams.get("full") !== "1") {
+      try {
+        const { width } = await sharp(body).metadata();
+        if (width > CARD_WIDTH || body.length > RECOMPRESS_OVER) {
+          body = await sharp(body)
+            .resize({ width: CARD_WIDTH, withoutEnlargement: true })
+            .jpeg({ quality: 78, mozjpeg: true })
+            .toBuffer();
+          type = "image/jpeg";
+        }
+      } catch {
+        // Not decodable by sharp: serve the original bytes.
+      }
+    }
+
+    return new Response(body, {
       status: 200,
       headers: {
-        "Content-Type": contentType,
+        "Content-Type": type,
         "Cache-Control": "public, max-age=30, s-maxage=60, stale-while-revalidate=60",
         "X-Content-Type-Options": "nosniff",
       },

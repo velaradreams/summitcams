@@ -1,5 +1,6 @@
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { preload } from "react-dom";
 import { CAMS } from "./cams";
 
 const dmSans = DM_Sans({
@@ -34,6 +35,8 @@ export const viewport = {
 };
 
 export default function RootLayout({ children }) {
+  // Both pages wait on /api/status before showing cams; start it with the HTML.
+  preload("/api/status", { as: "fetch", crossOrigin: "anonymous" });
   return (
     <html lang="en" className={jetbrainsMono.variable}>
       <body

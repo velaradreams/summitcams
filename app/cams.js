@@ -2,6 +2,7 @@
 // The proxy allowlist, health checks, snow lookups, and the page all derive from this.
 // Rules: never rename an `id` once shipped (it's the localStorage prefs key);
 // stake cams over scenic cams; `seasonal: true` means expected to go dark in summer.
+// `aspect` (default "16/9") sizes the card box to the frame so there are no bars.
 
 export const CAMS = [
   {
@@ -16,6 +17,7 @@ export const CAMS = [
     lon: -106.151,
     seasonal: true,
     stakeClear: "4 AM",
+    aspect: "4/3",
     type: "image",
     src: "https://img.hdrelay.com/frames/fb469125-f1f3-459f-aeb4-98cb674e395f/default/last.jpg",
   },
@@ -117,6 +119,7 @@ export const CAMS = [
     lat: 39.68,
     lon: -105.9,
     seasonal: true,
+    aspect: "4/3",
     type: "image",
     src: "https://cams.skiloveland.com/snowcam/snowcam.jpg",
   },
