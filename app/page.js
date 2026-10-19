@@ -822,7 +822,9 @@ export default function Home() {
       {/* Cam list */}
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "8px 20px 60px", boxSizing: "border-box" }}>
         {!statusReady ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "80px 0" }}>
+          // A full screen tall, so the footer starts below the fold and doesn't
+          // jump down when the cams render.
+          <div style={{ display: "flex", justifyContent: "center", padding: "80px 0", minHeight: "100vh", boxSizing: "border-box" }}>
             <div className="spinner" />
           </div>
         ) : (
