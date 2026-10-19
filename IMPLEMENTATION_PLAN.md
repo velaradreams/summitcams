@@ -1,3 +1,7 @@
+> **Historical (July 2026).** Executed; BACKLOG.md is the live list. Never add
+> `loading="lazy"` to the cam `<img>` (it's hidden until it loads, so it would
+> never fetch) — the page observes the cam box instead.
+
 # SummitCams Implementation Plan
 
 **Main value:** one page, on a phone, at 6am — *did it snow, and how much, at every Colorado

@@ -8,17 +8,23 @@ executed and deployed 2026-07-13 (commits 1a52753 / 683f24d / 0e00a1b).
 The high-priority section. Everything here is blocked on winter, not on decisions.
 
 1. **Verify the never-seen-live candidate URL:**
-   - Eldora Snow Stake — `img.hdrelay.com/frames/6c30942d-6116-4b5d-a7d9-141cb6415d07/default/last.jpg`
+   - Eldora Snow Stake — now `img.hdrelay.com/frames/811b9e59-6da4-4e8e-ac5b-d9aec82b0186/default/last.jpg`
+     (eldora.com switched GUIDs by 2026-10-18; both 404 while the stake section is hidden).
+     Old: `6c30942d-6116-4b5d-a7d9-141cb6415d07`.
      (GUID extracted from eldora.com Gatsby page-data while their whole cam system was down
      for summer maintenance; POWDR/HDRelay like Copper, but the URL has NEVER returned 200).
      Fallback pattern to try: `manage.hdrelay.com/snapshot/<guid>?size=800x450`.
 2. **Confirm the summer-dark registered cams wake up** (they're seasonal — they'll leave the
    off-season section automatically; only act if the health cron flags them as broken):
-   - Monarch Powder Cam — webcam.io `z7Arw9/latest.jpg` (404s when frames stale)
+   - Monarch Powder Cam — webcam.io `z7Arw9/latest.jpg` (keeps serving the last frame with
+     a 200 when stale — the Last-Modified check marks it "camera stuck")
    - Telluride PowCam — ipcamlive `alias=powcam` (snapshot.php 302s; alias is stable key)
    - Copper + A-Basin HDRelay frames, Breck Timecam (existing cams, offline every summer)
-   - Purgatory stake — whole `assets.mcp.ski` host is 526 for summer (one re-check also
-     answers whether Hesperus's cam on the same host revived, if that ever matters)
+   - Purgatory stake — DONE 2026-10-18: moved to `player.brownrice.com/snapshot/purgatorysnowstake1`
+   - Crested Butte PowCam — pulled 2026-10-18 (frame frozen on daylight at night); re-check
+     when CB opens, then uncomment it in cams.js
+   - Breck timecam host refuses connections — after Breck opens, copy the stake URL from
+     its cams page (Network tab); drop the timecam Referer if it works without
    - Powderhorn b16.hdrelay.com host — if it breaks, re-fetch player JSON at
      `manage.hdrelay.com/player/<playerid>` (ids in agent notes / cams.js comment)
 3. **Add Monarch's 2nd stake cam** — webcam.io `9RmqeM` ("Storm Cam", Butterfly marker) once
@@ -51,7 +57,10 @@ The high-priority section. Everything here is blocked on winter, not on decision
    feature gets greenlit. Recommendation: Supabase free tier, magic-link auth,
    `user_cam_prefs (user_id, cam_id, rank, hidden)`, migrate localStorage on first login.
 10. Stretch: snowfall alerts ("Wolf Creek stake shows 6+"), 24h stake timelapse
-   (Vercel cron + Blob snapshots every 30 min) — next big value item.
+   (Blob snapshots) — NOTE: Hobby crons run once a day with ±59 min jitter and `*/30`
+   fails the deploy, so a 30-min timelapse needs Pro or a few fixed daily crons.
+11. Before any ads/affiliate/sponsor money: move to Open-Meteo's paid key + Vercel Pro and
+   recheck each proxied host's terms. A tip jar doesn't trigger this.
 
 ## Reference: verified-live cams deliberately NOT added (scenic; stake-first rule)
 
