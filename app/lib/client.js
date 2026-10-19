@@ -50,11 +50,14 @@ export function useVisibleInterval(fn, ms) {
 }
 
 const REFRESH_MS = 10 * 60 * 1000;
-const STATUS_FALLBACK_MS = 1500;
+// Just past the 4 s health-check timeout: a cold sweep finishes before the
+// fallback fires, so cams never render as live and then jump away. Normal
+// visits get the CDN's cached status in ~0.15 s and never wait this long.
+const STATUS_FALLBACK_MS = 4500;
 
 // Cam statuses + snowfall, refreshed every 10 minutes while the tab is visible.
-// statusReady flips once status lands — or after 1.5 s, so a slow sweep never
-// blanks the page (cams then render as live until status arrives).
+// statusReady flips once status lands — or after 4.5 s, so a failed status
+// call never blanks the page (cams then render as live until status arrives).
 export function useLiveData() {
   const [statuses, setStatuses] = useState({});
   const [statusReady, setStatusReady] = useState(false);
