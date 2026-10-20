@@ -256,7 +256,7 @@ function SnowBadges({ snowIn, fcstIn }) {
           style={{ fontSize: 12, color: "#7dd3fc", fontWeight: 700, fontFamily: mono }}
           title="Snowfall in the last 24h — model estimate at the stake's elevation. Trust the stake."
         >
-          ❄ {snowIn}&quot; 24h
+          ❄ ~{snowIn}&quot; est. 24h
         </span>
       )}
       {fcst >= 1 && (
@@ -264,7 +264,7 @@ function SnowBadges({ snowIn, fcstIn }) {
           style={{ fontSize: 12, color: "#c4b5fd", fontWeight: 700, fontFamily: mono }}
           title="Forecast snowfall for the next 24h (model estimate)"
         >
-          → {fcst}&quot; fcst
+          → ~{fcst}&quot; forecast
         </span>
       )}
     </>
@@ -478,7 +478,7 @@ function SnowStrip({ cams, snow }) {
   if (top.length === 0) return null;
   return (
     <section
-      aria-label="Most snow in the last 24 hours"
+      aria-label="Estimated new snow in the last 24 hours"
       style={{
         border: "1px solid #1e293b",
         borderRadius: 10,
@@ -492,10 +492,13 @@ function SnowStrip({ cams, snow }) {
           color: DIM_TEXT,
           fontFamily: mono,
           letterSpacing: "0.14em",
-          marginBottom: 6,
+          marginBottom: 2,
         }}
       >
-        ❄ MOST SNOW · 24H MODEL ESTIMATE
+        ❄ ESTIMATED NEW SNOW · LAST 24 HRS
+      </div>
+      <div style={{ fontSize: 12, color: DIM_TEXT, marginBottom: 8 }}>
+        A weather-model estimate, not a measurement. Check the stake.
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {top.map((c) => (
@@ -505,7 +508,7 @@ function SnowStrip({ cams, snow }) {
             style={{ color: "#7dd3fc", fontSize: 12 }}
             onClick={() => document.getElementById(`cam-${c.id}`)?.scrollIntoView({ block: "start" })}
           >
-            {c.resort.toUpperCase()} {snow[c.id]}&quot;
+            {c.resort.toUpperCase()} ~{snow[c.id]}&quot;
           </button>
         ))}
       </div>

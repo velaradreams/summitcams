@@ -130,7 +130,7 @@ function Tile({ cam, snowIn }) {
             style={{ fontSize: 11, fontWeight: 700, color: "#7dd3fc", fontFamily: mono }}
             title="Snowfall in the last 24h — model estimate"
           >
-            ❄ {snowIn}&quot; 24h
+            ❄ ~{snowIn}&quot; est.
           </span>
         )}
       </div>
