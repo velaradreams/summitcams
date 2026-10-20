@@ -28,6 +28,8 @@ export const metadata = {
     siteName: "SummitCams",
     type: "website",
   },
+  // Added to an iPhone home screen, it opens full-screen like an app.
+  appleWebApp: { capable: true, title: "SummitCams", statusBarStyle: "black" },
 };
 
 export const viewport = {

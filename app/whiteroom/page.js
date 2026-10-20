@@ -158,7 +158,7 @@ export default function WhiteRoom() {
       {/* Header */}
       <header
         style={{
-          padding: "14px 16px 10px",
+          padding: "14px var(--wr-gutter) 10px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -178,11 +178,14 @@ export default function WhiteRoom() {
 
       {/* The wall — always 3 wide (the box geometry), stepping down on small screens */}
       <style>{`
+        :root { --wr-gutter: 16px; }
+        @media (max-width: 480px) { :root { --wr-gutter: 10px; } }
+        a { -webkit-tap-highlight-color: transparent; }
         .wall { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         @media (max-width: 900px) { .wall { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 560px) { .wall { grid-template-columns: 1fr; } }
       `}</style>
-      <main style={{ padding: "0 16px 40px", maxWidth: 1400, margin: "0 auto" }}>
+      <main style={{ padding: "0 var(--wr-gutter) 40px", maxWidth: 1400, margin: "0 auto" }}>
         <div className="wall">
           {roster.map((cam) => (
             <Tile key={cam.id} cam={cam} snowIn={snow[cam.id]} />

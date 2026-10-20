@@ -28,6 +28,7 @@ function CamFeed({ cam, priority }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [frameAt, setFrameAt] = useState(null);
   const isImage = cam.type === "image" || cam.type === "timecam";
 
   // Mount the feed once its (always-visible) box gets near the screen. Observe
@@ -149,6 +150,9 @@ function CamFeed({ cam, priority }) {
             onLoad={() => {
               setLoading(false);
               setError(false);
+              // The timing entry is filed just after the load event fires.
+              const src = imgSrc;
+              setTimeout(() => setFrameAt(readFrameTime(src)), 50);
             }}
             onError={() => {
               setLoading(false);
@@ -195,7 +199,49 @@ function CamFeed({ cam, priority }) {
           </span>
         </div>
       )}
+      {!loading && !error && frameAt && <PhotoAge at={frameAt} />}
     </div>
+  );
+}
+
+// Capture time the proxy sent for this image (Server-Timing "frame"), or null.
+function readFrameTime(src) {
+  try {
+    const url = new URL(src, window.location.href).href;
+    const entry = performance.getEntriesByName(url).pop();
+    const st = entry?.serverTiming?.find((t) => t.name === "frame");
+    const ms = st ? Date.parse(st.description) : NaN;
+    // Keep the timing buffer from filling up on a page left open for hours.
+    if (performance.getEntriesByType("resource").length > 200) performance.clearResourceTimings();
+    return Number.isFinite(ms) ? ms : null;
+  } catch {
+    return null;
+  }
+}
+
+// "photo 4 min ago" in the frame's corner; amber once it's over an hour old.
+// The feed refreshes every minute, which re-renders this with a fresh age.
+function PhotoAge({ at }) {
+  const mins = Math.max(0, Math.round((Date.now() - at) / 60000));
+  const text =
+    mins < 1 ? "photo just now" : mins < 60 ? `photo ${mins} min ago` : `photo ${Math.floor(mins / 60)} h ${mins % 60} min old`;
+  return (
+    <span
+      style={{
+        position: "absolute",
+        left: 8,
+        top: 8, // top: most cams burn their own timestamp into the bottom
+        fontSize: 12,
+        fontFamily: mono,
+        color: mins >= 60 ? "#fbbf24" : "#e2e8f0",
+        background: "rgba(6,10,19,0.72)",
+        borderRadius: 6,
+        padding: "3px 7px",
+        pointerEvents: "none",
+      }}
+    >
+      {text}
+    </span>
   );
 }
 
@@ -228,6 +274,16 @@ function CtrlButton({ onClick, label, pressed, active, children }) {
       {children}
     </button>
   );
+}
+
+// "opens Nov 6" while a resort's announced opening day is still ahead (Denver
+// dates), otherwise null.
+function opensLabel(opens) {
+  if (!opens) return null;
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Denver" });
+  if (opens <= today) return null;
+  const d = new Date(opens + "T12:00:00");
+  return `opens ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 }
 
 const fmtDenver = (iso) =>
@@ -470,6 +526,7 @@ function Clock() {
 }
 
 // "Where did it snow": the top 5 by 24h snowfall, when anything got an inch.
+// Two compact lines: what the numbers are, then the resorts (scrolls sideways).
 function SnowStrip({ cams, snow }) {
   const top = cams
     .filter((c) => (snow[c.id] || 0) >= 1)
@@ -482,30 +539,19 @@ function SnowStrip({ cams, snow }) {
       style={{
         border: "1px solid #1e293b",
         borderRadius: 10,
-        padding: "10px 12px",
+        padding: "8px 10px",
         background: "#0a0f1a",
       }}
     >
-      <div
-        style={{
-          fontSize: 12,
-          color: DIM_TEXT,
-          fontFamily: mono,
-          letterSpacing: "0.14em",
-          marginBottom: 2,
-        }}
-      >
-        ❄ ESTIMATED NEW SNOW · LAST 24 HRS
+      <div style={{ fontSize: 12, color: DIM_TEXT, fontFamily: mono, letterSpacing: "0.06em", marginBottom: 6 }}>
+        ❄ NEW SNOW, 24H · <span style={{ color: STATUS_TEXT }}>model estimate, not measured</span>
       </div>
-      <div style={{ fontSize: 12, color: DIM_TEXT, marginBottom: 8 }}>
-        A weather-model estimate, not a measurement. Check the stake.
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      <div className="navrow" style={{ display: "flex", gap: 6, overflowX: "auto" }}>
         {top.map((c) => (
           <button
             key={c.id}
             className="chip"
-            style={{ color: "#7dd3fc", fontSize: 12 }}
+            style={{ color: "#7dd3fc" }}
             onClick={() => document.getElementById(`cam-${c.id}`)?.scrollIntoView({ block: "start" })}
           >
             {c.resort.toUpperCase()} ~{snow[c.id]}&quot;
@@ -523,42 +569,49 @@ const PASSES = [
   ["independent", "Independent"],
 ];
 
-// All / Ikon / Epic / Independent. Starts on All every visit.
+// All / Ikon / Epic / Independent as one segmented control. Starts on All
+// every visit.
 function PassFilter({ value, onChange }) {
   return (
-    <div
-      role="group"
-      aria-label="Filter by ski pass"
-      style={{
-        maxWidth: 900,
-        margin: "0 auto",
-        padding: "0 20px 4px",
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 6,
-        boxSizing: "border-box",
-      }}
-    >
-      {PASSES.map(([key, label]) => {
-        const active = value === key;
-        return (
-          <button
-            key={key}
-            className="chip"
-            aria-pressed={active}
-            onClick={() => onChange(key)}
-            style={{
-              color: active ? "#060a13" : DIM_TEXT,
-              background: active ? "#6ee7b7" : "#0c1220",
-              borderColor: active ? "#6ee7b7" : "#1e293b",
-              fontWeight: active ? 700 : 400,
-            }}
-          >
-            {label.toUpperCase()}
-          </button>
-        );
-      })}
+    <div role="group" aria-label="Filter by ski pass" className="seg">
+      {PASSES.map(([key, label]) => (
+        <button key={key} aria-pressed={value === key} onClick={() => onChange(key)} aria-label={label}>
+          {key === "independent" ? (
+            <>
+              INDEP<span className="hide-xs">ENDENT</span>
+              <span className="show-xs">.</span>
+            </>
+          ) : (
+            label.toUpperCase()
+          )}
+        </button>
+      ))}
     </div>
+  );
+}
+
+// Region jump: a native picker (the phone's own wheel/list), so it never
+// competes with the pass filter for the one sticky row.
+function RegionJump({ regions, regionId }) {
+  return (
+    <label className="jump">
+      <span className="sr-only">Jump to region</span>
+      <select
+        value=""
+        onChange={(e) => {
+          const id = e.target.value;
+          e.target.value = "";
+          if (id) document.getElementById(id)?.scrollIntoView({ block: "start" });
+        }}
+      >
+        <option value="">REGION ▾</option>
+        {regions.map((r) => (
+          <option key={r.name} value={regionId(r.name)}>
+            {r.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -762,7 +815,7 @@ export default function Home() {
         }
         .pulse { animation: pulse 1.5s ease infinite; }
         .brand-dot { animation: pulse 2.5s ease-in-out infinite; }
-        .cam-entry { animation: fadeUp 0.5s ease both; scroll-margin-top: 52px; }
+        .cam-entry { animation: fadeUp 0.5s ease both; scroll-margin-top: 62px; }
         .chip {
           font-family: var(--font-mono), monospace;
           font-size: 12px; letter-spacing: 0.06em;
@@ -771,6 +824,34 @@ export default function Home() {
           padding: 6px 11px; cursor: pointer; white-space: nowrap;
         }
         .chip:hover { color: #6ee7b7; border-color: #334155; }
+        .wrap { max-width: 900px; margin: 0 auto; padding-left: 20px; padding-right: 20px; box-sizing: border-box; }
+        @media (max-width: 480px) { .wrap { padding-left: 12px; padding-right: 12px; } }
+        @media (max-width: 400px) { .hide-narrow { display: none; } }
+        .show-xs { display: none; }
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        .seg { display: inline-flex; border: 1px solid #1e293b; border-radius: 999px; overflow: hidden; flex-shrink: 0; }
+        .seg button {
+          font-family: var(--font-mono), monospace; font-size: 12px; letter-spacing: 0.04em;
+          color: ${DIM_TEXT}; background: #0c1220; border: none; padding: 8px 10px;
+          min-height: 34px; cursor: pointer; white-space: nowrap;
+        }
+        .seg button + button { border-left: 1px solid #1e293b; }
+        .seg button[aria-pressed="true"] { color: #060a13; background: #6ee7b7; font-weight: 700; }
+        .jump select {
+          font-family: var(--font-mono), monospace; font-size: 12px; letter-spacing: 0.04em;
+          color: ${DIM_TEXT}; background: #0c1220; border: 1px solid #1e293b; border-radius: 999px;
+          padding: 8px 10px; min-height: 34px; cursor: pointer; appearance: none; -webkit-appearance: none;
+          width: 96px; text-overflow: ellipsis; /* else it sizes to its longest option */
+        }
+        /* After the base .seg/.jump rules so these win on the narrowest phones. */
+        @media (max-width: 360px) {
+          .hide-xs { display: none; }
+          .show-xs { display: inline; }
+          .seg button { padding: 8px 7px; }
+          .jump select { width: 84px; }
+        }
+        a, button, select { -webkit-tap-highlight-color: transparent; }
+        html { -webkit-text-size-adjust: 100%; }
         .navrow { scrollbar-width: none; }
         .navrow::-webkit-scrollbar { display: none; }
         .ctrl:hover { color: #6ee7b7 !important; }
@@ -783,102 +864,95 @@ export default function Home() {
         }
       `}</style>
 
-      {/* Header */}
+      {/* Header: one row on phones — wordmark with the Denver clock under it,
+          White Room on the right. */}
       <header
+        className="wrap"
         style={{
-          padding: "18px 20px 10px",
-          maxWidth: 900,
-          margin: "0 auto",
+          paddingTop: 14,
+          paddingBottom: 8,
           display: "flex",
-          flexWrap: "wrap",
-          rowGap: 8,
-          columnGap: 12,
           justifyContent: "space-between",
           alignItems: "center",
-          boxSizing: "border-box",
+          gap: 10,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          <div
-            className="brand-dot"
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: "#6ee7b7",
-              boxShadow: "0 0 6px rgba(110,231,183,0.4)",
-            }}
-          />
-          <h1 style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.02em", color: "#fff", margin: 0 }}>
-            SUMMIT<span style={{ color: "#6ee7b7" }}>CAMS</span>
-          </h1>
-          <span style={{ fontSize: 10, color: DIM_TEXT, fontFamily: mono }}>.live</span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div
+              className="brand-dot"
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#6ee7b7",
+                boxShadow: "0 0 8px rgba(110,231,183,0.5)",
+                flexShrink: 0,
+              }}
+            />
+            <h1 style={{ fontSize: 21, fontWeight: 800, letterSpacing: "0.01em", color: "#fff", margin: 0, lineHeight: 1.1 }}>
+              SUMMIT<span style={{ color: "#6ee7b7" }}>CAMS</span>
+            </h1>
+          </div>
+          <div style={{ paddingLeft: 16, marginTop: 2 }}>
+            <Clock />
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Clock />
-          <a
-            href="/whiteroom"
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: "0.14em",
-              fontFamily: mono,
-              color: "#6ee7b7",
-              background: "rgba(110,231,183,0.08)",
-              border: "1px solid rgba(110,231,183,0.35)",
-              borderRadius: 999,
-              padding: "7px 12px",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
-            ❄ THE WHITE ROOM
-          </a>
-        </div>
+        <a
+          href="/whiteroom"
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            letterSpacing: "0.1em",
+            fontFamily: mono,
+            color: "#6ee7b7",
+            background: "rgba(110,231,183,0.08)",
+            border: "1px solid rgba(110,231,183,0.35)",
+            borderRadius: 999,
+            padding: "8px 12px",
+            textDecoration: "none",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+          }}
+        >
+          ❄ <span className="hide-narrow">THE </span>WHITE ROOM
+        </a>
       </header>
 
-      <PassFilter value={passFilter} onChange={setPassFilter} />
-
-      {/* Region quick-nav — sticks to the top while scrolling. Always rendered
-          at full height (chips fill in once status lands), so the cam list
-          below never gets pushed down after the first paint. */}
+      {/* One sticky row: pass filter + region picker. Always rendered at full
+          height (the picker fills in once status lands), so nothing below it
+          moves after the first paint. */}
       <nav
-        aria-label="Regions"
+        aria-label="Filters"
         style={{
           position: "sticky",
           top: 0,
           zIndex: 5,
           background: "rgba(6,10,19,0.94)",
           backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+          borderBottom: "1px solid #0f172a",
         }}
       >
         <div
-          className="navrow"
+          className="wrap"
           style={{
-            maxWidth: 900,
-            margin: "0 auto",
-            padding: "8px 20px",
+            paddingTop: 8,
+            paddingBottom: 8,
             display: "flex",
-            gap: 6,
-            overflowX: "auto",
-            boxSizing: "border-box",
-            minHeight: 46,
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            minHeight: 50,
           }}
         >
-          {statusReady && regions.length > 1 && regions.map((r) => (
-            <button
-              key={r.name}
-              className="chip"
-              onClick={() => document.getElementById(regionId(r.name))?.scrollIntoView({ block: "start" })}
-            >
-              {r.name.toUpperCase()}
-            </button>
-          ))}
+          <PassFilter value={passFilter} onChange={setPassFilter} />
+          {statusReady && regions.length > 1 && <RegionJump regions={regions} regionId={regionId} />}
         </div>
       </nav>
 
       {/* Cam list */}
-      <main style={{ maxWidth: 900, margin: "0 auto", padding: "8px 20px 60px", boxSizing: "border-box" }}>
+      <main className="wrap" style={{ paddingTop: 12, paddingBottom: 60 }}>
         {!statusReady ? (
           // A full screen tall, so the footer starts below the fold and doesn't
           // jump down when the cams render.
@@ -908,7 +982,7 @@ export default function Home() {
               <div
                 key={r.name}
                 id={regionId(r.name)}
-                style={{ display: "flex", flexDirection: "column", gap: 20, scrollMarginTop: 52 }}
+                style={{ display: "flex", flexDirection: "column", gap: 20, scrollMarginTop: 62 }}
               >
                 {regions.length > 1 && sectionHeader(r.name.toUpperCase())}
                 {renderList(r.cams, r.name, false)}
@@ -950,7 +1024,16 @@ export default function Home() {
                         </a>
                         <span style={{ fontSize: 12, color: DIM_TEXT }}>{cam.cam}</span>
                       </div>
-                      <span style={{ fontSize: 12, color: DIM_TEXT, fontFamily: mono }}>{cam.elevation}</span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: opensLabel(cam.opens) ? "#6ee7b7" : DIM_TEXT,
+                          fontFamily: mono,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {opensLabel(cam.opens) || cam.elevation}
+                      </span>
                     </div>
                   ))}
                 </div>

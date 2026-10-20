@@ -70,9 +70,19 @@ export async function GET(request) {
       }
     }
 
+    // When the camera's server says when the frame was taken, pass that along
+    // as Server-Timing so the page can show "photo 4 min ago" without an extra
+    // request (images can't expose headers to JS; Resource Timing can).
+    const lastModified = Date.parse(upstream.headers.get("last-modified") || "");
+    const frameTiming =
+      cam.freshness !== "none" && Number.isFinite(lastModified)
+        ? { "Server-Timing": `frame;desc="${new Date(lastModified).toISOString()}"` }
+        : {};
+
     return new Response(body, {
       status: 200,
       headers: {
+        ...frameTiming,
         "Content-Type": type,
         "Cache-Control": "public, max-age=30, s-maxage=60, stale-while-revalidate=60",
         "X-Content-Type-Options": "nosniff",

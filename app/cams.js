@@ -5,10 +5,13 @@
 // `aspect` (default "16/9") sizes the card box to the frame so there are no bars.
 // `pass`: "ikon" | "epic" | "independent" (2026-27 season; Telluride is an Epic
 // partner with 7 days) — drives the pass filter on the home page.
+// `opens`: announced 2026-27 opening day (only where resorts confirmed one;
+// shown in the off-season list until it passes). Update each fall.
 
 export const CAMS = [
   {
     id: "copper",
+    opens: "2026-11-06",
     pass: "ikon",
     website: "https://www.coppercolorado.com/",
     verification: "validated",
@@ -41,6 +44,7 @@ export const CAMS = [
   },
   {
     id: "breck",
+    opens: "2026-11-06",
     pass: "epic",
     website: "https://www.breckenridge.com/",
     verification: "validated",
@@ -74,6 +78,7 @@ export const CAMS = [
   },
   {
     id: "vail-summit",
+    opens: "2026-11-13",
     pass: "epic",
     website: "https://www.vail.com/",
     verification: "validated",
@@ -104,6 +109,7 @@ export const CAMS = [
   },
   {
     id: "beaver",
+    opens: "2026-11-25",
     pass: "epic",
     website: "https://www.beavercreek.com/",
     verification: "validated",
@@ -135,6 +141,7 @@ export const CAMS = [
   },
   {
     id: "eldora-stake",
+    opens: "2026-11-13",
     pass: "ikon",
     website: "https://www.eldora.com/",
     verification: "untested",
@@ -168,6 +175,7 @@ export const CAMS = [
   },
   {
     id: "steamboat-mid",
+    opens: "2026-11-21",
     pass: "ikon",
     website: "https://www.steamboat.com/",
     verification: "validated",
@@ -183,6 +191,7 @@ export const CAMS = [
   },
   {
     id: "steamboat-summit",
+    opens: "2026-11-21",
     pass: "ikon",
     website: "https://www.steamboat.com/",
     verification: "validated",
@@ -198,6 +207,7 @@ export const CAMS = [
   },
   {
     id: "aspen-mtn-stake",
+    opens: "2026-11-26",
     pass: "ikon",
     website: "https://www.aspensnowmass.com/",
     verification: "untested",
@@ -213,6 +223,7 @@ export const CAMS = [
   },
   {
     id: "aspen-highlands-stake",
+    opens: "2026-12-12",
     pass: "ikon",
     website: "https://www.aspensnowmass.com/",
     verification: "untested",
@@ -228,6 +239,7 @@ export const CAMS = [
   },
   {
     id: "snowmass-stake",
+    opens: "2026-11-26",
     pass: "ikon",
     website: "https://www.aspensnowmass.com/",
     verification: "untested",
@@ -243,6 +255,7 @@ export const CAMS = [
   },
   {
     id: "buttermilk-stake",
+    opens: "2026-12-12",
     pass: "ikon",
     website: "https://www.aspensnowmass.com/",
     verification: "untested",
