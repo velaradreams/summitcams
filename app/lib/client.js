@@ -56,7 +56,7 @@ const REFRESH_MS = 10 * 60 * 1000;
 const STATUS_FALLBACK_MS = 4500;
 
 // Cam statuses + snowfall, refreshed every 10 minutes while the tab is visible.
-// statusReady flips once status lands — or after 4.5 s, so a failed status
+// statusReady flips once status and snow land — or after 4.5 s, so a failed
 // call never blanks the page (cams then render as live until status arrives).
 export function useLiveData() {
   const [statuses, setStatuses] = useState({});
@@ -65,11 +65,12 @@ export function useLiveData() {
 
   useEffect(() => {
     const fallback = setTimeout(() => setStatusReady(true), STATUS_FALLBACK_MS);
-    loadStatus().finally(() => {
+    // Wait for snow too: the snow strip sits above the cams, so drawing the
+    // list before it arrives would push everything down when it pops in.
+    Promise.allSettled([loadStatus(), loadSnow()]).then(() => {
       clearTimeout(fallback);
       setStatusReady(true);
     });
-    loadSnow();
     return () => clearTimeout(fallback);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

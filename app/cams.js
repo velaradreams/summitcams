@@ -3,10 +3,13 @@
 // Rules: never rename an `id` once shipped (it's the localStorage prefs key);
 // stake cams over scenic cams; `seasonal: true` means expected to go dark in summer.
 // `aspect` (default "16/9") sizes the card box to the frame so there are no bars.
+// `pass`: "ikon" | "epic" | "independent" (2026-27 season; Telluride is an Epic
+// partner with 7 days) — drives the pass filter on the home page.
 
 export const CAMS = [
   {
     id: "copper",
+    pass: "ikon",
     website: "https://www.coppercolorado.com/",
     verification: "validated",
     resort: "Copper Mountain",
@@ -23,6 +26,7 @@ export const CAMS = [
   },
   {
     id: "abay",
+    pass: "ikon",
     website: "https://www.arapahoebasin.com/",
     verification: "validated",
     resort: "Arapahoe Basin",
@@ -37,6 +41,7 @@ export const CAMS = [
   },
   {
     id: "breck",
+    pass: "epic",
     website: "https://www.breckenridge.com/",
     verification: "validated",
     resort: "Breckenridge",
@@ -54,6 +59,7 @@ export const CAMS = [
   },
   {
     id: "keystone",
+    pass: "epic",
     website: "https://www.keystoneresort.com/",
     verification: "validated",
     resort: "Keystone",
@@ -68,6 +74,7 @@ export const CAMS = [
   },
   {
     id: "vail-summit",
+    pass: "epic",
     website: "https://www.vail.com/",
     verification: "validated",
     resort: "Vail Summit",
@@ -82,6 +89,7 @@ export const CAMS = [
   },
   {
     id: "vail-bluesky",
+    pass: "epic",
     website: "https://www.vail.com/",
     verification: "validated",
     resort: "Vail Blue Sky Basin",
@@ -96,6 +104,7 @@ export const CAMS = [
   },
   {
     id: "beaver",
+    pass: "epic",
     website: "https://www.beavercreek.com/",
     verification: "validated",
     resort: "Beaver Creek",
@@ -110,6 +119,7 @@ export const CAMS = [
   },
   {
     id: "loveland-stake",
+    pass: "independent",
     website: "https://skiloveland.com/",
     verification: "validated",
     resort: "Loveland",
@@ -125,6 +135,7 @@ export const CAMS = [
   },
   {
     id: "eldora-stake",
+    pass: "ikon",
     website: "https://www.eldora.com/",
     verification: "untested",
     resort: "Eldora",
@@ -142,6 +153,7 @@ export const CAMS = [
   },
   {
     id: "winterpark",
+    pass: "ikon",
     website: "https://www.winterparkresort.com/",
     verification: "validated",
     resort: "Winter Park",
@@ -156,6 +168,7 @@ export const CAMS = [
   },
   {
     id: "steamboat-mid",
+    pass: "ikon",
     website: "https://www.steamboat.com/",
     verification: "validated",
     resort: "Steamboat Mid-Mountain",
@@ -170,6 +183,7 @@ export const CAMS = [
   },
   {
     id: "steamboat-summit",
+    pass: "ikon",
     website: "https://www.steamboat.com/",
     verification: "validated",
     resort: "Steamboat Summit",
@@ -184,6 +198,7 @@ export const CAMS = [
   },
   {
     id: "aspen-mtn-stake",
+    pass: "ikon",
     website: "https://www.aspensnowmass.com/",
     verification: "untested",
     resort: "Aspen Mountain",
@@ -198,6 +213,7 @@ export const CAMS = [
   },
   {
     id: "aspen-highlands-stake",
+    pass: "ikon",
     website: "https://www.aspensnowmass.com/",
     verification: "untested",
     resort: "Aspen Highlands",
@@ -212,6 +228,7 @@ export const CAMS = [
   },
   {
     id: "snowmass-stake",
+    pass: "ikon",
     website: "https://www.aspensnowmass.com/",
     verification: "untested",
     resort: "Snowmass",
@@ -226,6 +243,7 @@ export const CAMS = [
   },
   {
     id: "buttermilk-stake",
+    pass: "ikon",
     website: "https://www.aspensnowmass.com/",
     verification: "untested",
     resort: "Buttermilk",
@@ -242,6 +260,7 @@ export const CAMS = [
   // frame at night. Re-check when Crested Butte opens; the id stays reserved.
   // {
   //   id: "cb-pow",
+  //   pass: "epic",
   //   website: "https://www.skicb.com/",
   //   verification: "untested",
   //   resort: "Crested Butte",
@@ -256,6 +275,7 @@ export const CAMS = [
   // },
   {
     id: "telluride-powcam",
+    pass: "epic",
     website: "https://tellurideskiresort.com/",
     verification: "untested",
     resort: "Telluride",
@@ -273,6 +293,7 @@ export const CAMS = [
   },
   {
     id: "monarch-powder",
+    pass: "independent",
     website: "https://skimonarch.com/",
     verification: "untested",
     resort: "Monarch",
@@ -289,6 +310,7 @@ export const CAMS = [
   },
   {
     id: "cooper-stake",
+    pass: "independent",
     verification: "untested",
     website: "https://www.skicooper.com/",
     resort: "Ski Cooper",
@@ -306,6 +328,7 @@ export const CAMS = [
   },
   {
     id: "sunlight-stake",
+    pass: "independent",
     verification: "untested",
     website: "https://sunlightmtn.com/",
     resort: "Sunlight",
@@ -320,6 +343,7 @@ export const CAMS = [
   },
   {
     id: "powderhorn-stake",
+    pass: "independent",
     verification: "untested",
     website: "https://powderhorn.com/",
     resort: "Powderhorn",
@@ -338,6 +362,7 @@ export const CAMS = [
   },
   {
     id: "granby-base",
+    pass: "independent",
     verification: "untested",
     website: "https://granbyranch.com/",
     resort: "Granby Ranch",
@@ -352,6 +377,7 @@ export const CAMS = [
   },
   {
     id: "purgatory-stake",
+    pass: "independent",
     verification: "validated",
     website: "https://www.purgatory.ski/",
     resort: "Purgatory",
@@ -366,6 +392,7 @@ export const CAMS = [
   },
   {
     id: "wolfcreek-base",
+    pass: "independent",
     website: "https://wolfcreekski.com/",
     verification: "untested",
     resort: "Wolf Creek",

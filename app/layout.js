@@ -35,8 +35,9 @@ export const viewport = {
 };
 
 export default function RootLayout({ children }) {
-  // Both pages wait on /api/status before showing cams; start it with the HTML.
+  // Both pages wait on /api/status and /api/snow before showing cams; start them with the HTML.
   preload("/api/status", { as: "fetch", crossOrigin: "anonymous" });
+  preload("/api/snow", { as: "fetch", crossOrigin: "anonymous" });
   return (
     <html lang="en" className={jetbrainsMono.variable}>
       <body

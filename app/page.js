@@ -516,6 +516,52 @@ function SnowStrip({ cams, snow }) {
   );
 }
 
+const PASSES = [
+  ["all", "All"],
+  ["ikon", "Ikon"],
+  ["epic", "Epic"],
+  ["independent", "Independent"],
+];
+
+// All / Ikon / Epic / Independent. Starts on All every visit.
+function PassFilter({ value, onChange }) {
+  return (
+    <div
+      role="group"
+      aria-label="Filter by ski pass"
+      style={{
+        maxWidth: 900,
+        margin: "0 auto",
+        padding: "0 20px 4px",
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 6,
+        boxSizing: "border-box",
+      }}
+    >
+      {PASSES.map(([key, label]) => {
+        const active = value === key;
+        return (
+          <button
+            key={key}
+            className="chip"
+            aria-pressed={active}
+            onClick={() => onChange(key)}
+            style={{
+              color: active ? "#060a13" : DIM_TEXT,
+              background: active ? "#6ee7b7" : "#0c1220",
+              borderColor: active ? "#6ee7b7" : "#1e293b",
+              fontWeight: active ? 700 : 400,
+            }}
+          >
+            {label.toUpperCase()}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 const sectionHeader = (label) => (
   <h2
     style={{
@@ -537,6 +583,7 @@ export default function Home() {
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
   const [recent, setRecent] = useState(null); // the card that just left, for Undo
+  const [passFilter, setPassFilter] = useState("all");
   const anchorRef = useRef(null); // where the tapped card sat on screen
 
   useEffect(() => {
@@ -571,9 +618,13 @@ export default function Home() {
   const byId = useMemo(() => Object.fromEntries(CAMS.map((c) => [c.id, c])), []);
   const stateOf = (id) => statuses[id]?.state || "ok";
 
-  const favCams = prefs.favs.map((id) => byId[id]).filter(Boolean);
+  // The pass filter applies to every list except the hidden-cams manager.
+  const inPass = (c) => passFilter === "all" || c.pass === passFilter;
+  const favCams = prefs.favs.map((id) => byId[id]).filter(Boolean).filter(inPass);
   const hiddenCams = CAMS.filter((c) => prefs.hidden.includes(c.id));
-  const mainCams = CAMS.filter((c) => !prefs.hidden.includes(c.id) && !prefs.favs.includes(c.id));
+  const mainCams = CAMS.filter(
+    (c) => !prefs.hidden.includes(c.id) && !prefs.favs.includes(c.id) && inPass(c)
+  );
   const activeCams = mainCams.filter((c) => stateOf(c.id) !== "offseason");
   const offseasonCams = mainCams.filter((c) => stateOf(c.id) === "offseason");
 
@@ -687,7 +738,9 @@ export default function Home() {
     return items;
   };
 
-  const stripCams = CAMS.filter((c) => !prefs.hidden.includes(c.id) && stateOf(c.id) !== "offseason");
+  const stripCams = CAMS.filter(
+    (c) => !prefs.hidden.includes(c.id) && stateOf(c.id) !== "offseason" && inPass(c)
+  );
   const showFavSection = favCams.length > 0 || recent?.section === "fav";
   const regionId = (name) => `region-${name.replace(/\s+/g, "-")}`;
 
@@ -784,6 +837,8 @@ export default function Home() {
         </div>
       </header>
 
+      <PassFilter value={passFilter} onChange={setPassFilter} />
+
       {/* Region quick-nav — sticks to the top while scrolling. Always rendered
           at full height (chips fill in once status lands), so the cam list
           below never gets pushed down after the first paint. */}
@@ -833,6 +888,12 @@ export default function Home() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <SnowStrip cams={stripCams} snow={snow} />
+
+            {favCams.length === 0 && regions.length === 0 && (
+              <div style={{ fontSize: 13, color: STATUS_TEXT, fontFamily: mono, padding: "24px 2px" }}>
+                No live {PASSES.find(([k]) => k === passFilter)[1]} cams right now.
+              </div>
+            )}
 
             {/* Favorites */}
             {showFavSection && (
