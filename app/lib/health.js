@@ -1,8 +1,27 @@
 import { CAMS, upstreamUrl, upstreamHeaders, isSummer } from "../cams";
 
-// A frame older than this counts as a stuck camera, not a live one.
-const STALE_MS = 6 * 3600 * 1000;
+const HOUR = 3600 * 1000;
 const TIMEOUT_MS = 4000;
+
+// Denver wall-clock pieces for the season and stuck-camera rules.
+function denverNow() {
+  const now = new Date();
+  const hour = Number(
+    now.toLocaleString("en-US", { timeZone: "America/Denver", hour: "numeric", hourCycle: "h23" })
+  );
+  const date = now.toLocaleDateString("en-CA", { timeZone: "America/Denver" }); // YYYY-MM-DD
+  return { hour, date };
+}
+
+// Is this frame from a camera that has stopped? Many cams pause after dark and
+// pick up again in the morning, so an overnight gap is normal: only call it
+// stuck if it's more than 18 hours old, or more than 4 hours old in the middle
+// of the day (10 AM–4 PM Denver), when every working cam should be updating.
+function isStuck(ageMs) {
+  if (ageMs > 18 * HOUR) return true;
+  const { hour } = denverNow();
+  return hour >= 10 && hour < 16 && ageMs > 4 * HOUR;
+}
 
 // YouTube liveness from the watch page. Returns "live", "ended" (the stream is
 // over for good — this video id will never come back), or "unknown".
@@ -30,8 +49,11 @@ async function youtubeState(videoId) {
 }
 
 // A dark cam: off-season during May–November for seasonal cams, otherwise down.
+// Once a resort's announced opening day (`opens`) has passed, a dark cam is
+// down, not off-season — the mountain is open.
 function darkState(cam, extra) {
-  const state = cam.seasonal && isSummer() ? "offseason" : "down";
+  const opened = cam.opens && cam.opens <= denverNow().date;
+  const state = cam.seasonal && isSummer() && !opened ? "offseason" : "down";
   return { state, ...extra };
 }
 
@@ -67,7 +89,7 @@ export async function checkAllCams() {
         return [cam.id, { ...darkState(cam, { reason: "offline", httpStatus: res.status }), verification: v }];
       // A camera that stopped often keeps serving its last frame with a 200.
       const lastModified = Date.parse(res.headers.get("last-modified") || "");
-      if (cam.freshness !== "none" && Number.isFinite(lastModified) && Date.now() - lastModified > STALE_MS) {
+      if (cam.freshness !== "none" && Number.isFinite(lastModified) && isStuck(Date.now() - lastModified)) {
         const frameAt = new Date(lastModified).toISOString();
         return [cam.id, { ...darkState(cam, { reason: "stale", frameAt }), verification: v }];
       }
